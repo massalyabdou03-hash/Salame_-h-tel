@@ -118,7 +118,7 @@ export default function App() {
     <>
       {doc && <DocView doc={doc} info={info} onClose={() => setDoc(null)} />}
       <div className={`min-h-screen bg-slate-100 text-slate-900 ${doc ? 'hidden' : ''}`}>
-        <header className="sticky top-0 z-20 border-b border-salam-900/10 bg-gradient-to-r from-salam-900 via-salam-800 to-salam-700 text-white shadow-sm">
+        <header className="sticky top-0 z-20 border-b border-salam-900/10 bg-gradient-to-r from-salam-900 via-salam-800 to-salam-700 text-white shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 md:px-5">
             <div className="min-w-0">
               <p className="truncate text-base font-extrabold leading-tight">{info.brand}</p>
@@ -140,7 +140,7 @@ export default function App() {
           {page}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur">
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur-sm">
           <div className="mx-auto flex max-w-5xl items-center gap-1">
             {TABS.map(([id, label, Icon]) => {
               const active = tab === id
