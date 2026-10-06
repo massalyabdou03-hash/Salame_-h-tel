@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-import { UNIT_TYPES } from './utils'
+import { UNIT_TYPES, UNIT_ZONES } from './utils'
 
 const Field = ({ label, children }) => (
   <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700">{label}</span>{children}</label>
 )
 
+const emptyUnit = {
+  name: '',
+  zone: 'Rez-de-chaussée',
+  type: 'Chambre simple',
+  price_per_night: '0',
+  max_guests: '2',
+}
+
 export default function Reglages({ data, info, reload }) {
   const [v, setV] = useState({ brand: info.brand, manager: info.manager, phones: info.phones, address: info.address })
+  const [newUnit, setNewUnit] = useState(emptyUnit)
   const [msg, setMsg] = useState('')
 
   const saveInfo = async (e) => {
@@ -15,6 +24,36 @@ export default function Reglages({ data, info, reload }) {
     const rows = Object.entries(v).map(([key, value]) => ({ key, value: value.trim() })).filter((r) => r.value)
     const { error } = await supabase.from('settings').upsert(rows)
     setMsg(error ? `Erreur : ${error.message}` : 'Informations enregistrées. Elles apparaissent sur les factures et contrats.')
+    reload()
+  }
+
+  const addUnit = async (e) => {
+    e.preventDefault()
+    const name = newUnit.name.trim()
+    const price = Number(newUnit.price_per_night) || 0
+    const capacity = Math.max(1, Number(newUnit.max_guests) || 1)
+
+    if (!name) {
+      setMsg('Le nom du logement est obligatoire.')
+      return
+    }
+
+    const { error } = await supabase.from('units').insert({
+      name,
+      zone: newUnit.zone,
+      type: newUnit.type,
+      price_per_night: price,
+      max_guests: capacity,
+      status: 'disponible',
+    })
+
+    if (error) {
+      setMsg(`Erreur : ${error.message}`)
+      return
+    }
+
+    setNewUnit(emptyUnit)
+    setMsg(`${name} a été ajouté avec succès.`)
     reload()
   }
 
@@ -37,6 +76,56 @@ export default function Reglages({ data, info, reload }) {
         <Field label="Téléphones"><input className="input" value={v.phones} onChange={(e) => setV({ ...v, phones: e.target.value })} /></Field>
         <Field label="Adresse"><input className="input" value={v.address} onChange={(e) => setV({ ...v, address: e.target.value })} /></Field>
         <button className="btn btn-primary">Enregistrer</button>
+      </form>
+
+      <form onSubmit={addUnit} className="card space-y-3">
+        <h2 className="font-bold">Ajouter un logement</h2>
+        <Field label="Nom du logement">
+          <input
+            className="input"
+            placeholder="Ex. Appartement 15"
+            value={newUnit.name}
+            onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
+          />
+        </Field>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Zone">
+            <select className="input" value={newUnit.zone} onChange={(e) => setNewUnit({ ...newUnit, zone: e.target.value })}>
+              {UNIT_ZONES.map((z) => <option key={z} value={z}>{z}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Type">
+            <select className="input" value={newUnit.type} onChange={(e) => setNewUnit({ ...newUnit, type: e.target.value })}>
+              {UNIT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Prix / nuit (FCFA)">
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={newUnit.price_per_night}
+              onChange={(e) => setNewUnit({ ...newUnit, price_per_night: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Capacité (pers.)">
+            <input
+              className="input"
+              type="number"
+              min="1"
+              value={newUnit.max_guests}
+              onChange={(e) => setNewUnit({ ...newUnit, max_guests: e.target.value })}
+            />
+          </Field>
+        </div>
+
+        <button className="btn btn-primary" type="submit">Ajouter le logement</button>
       </form>
 
       {msg && <p className="rounded-lg bg-salam-50 p-3 text-sm text-salam-700">{msg}</p>}
