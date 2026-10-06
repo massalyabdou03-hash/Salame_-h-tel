@@ -144,3 +144,4 @@ export async function sharePdf(doc, filename) {
     try { await navigator.share({ files: [file], title: filename }); return } catch (e) { if (e.name === 'AbortError') return }
   }
   doc.save(filename)
+}
