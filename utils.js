@@ -8,6 +8,7 @@ export const GIE = {
   phones: '77 671 18 26 / 77 659 26 11',
 }
 export const PAY_MODES = ['Espèces', 'Orange Money', 'Virement', 'Chèque', 'Wave']
+export const UNIT_ZONES = ['Rez-de-chaussée', 'Étage', 'Duplex', 'Appartement']
 export const UNIT_TYPES = ['Chambre simple', 'Chambre ventilée', 'Chambre double', 'Duplex', 'Appartement']
 export const EXPENSE_CATS = ['Plomberie', 'Électricité', 'Maintenance', "Produits d'entretien", 'Équipements', 'Autre']
 
@@ -26,6 +27,6 @@ export const stageOf = (b, t = today()) =>
 export const STAGE = {
   avenir: ['À venir', 'bg-sky-100 text-sky-800'],
   encours: ['En cours', 'bg-emerald-100 text-emerald-800'],
-  terminee: ['Terminée', 'bg-slate-100 text-slate-700'],
+  terminee: ['Terminé', 'bg-slate-100 text-slate-700'],
   annulee: ['Annulée', 'bg-red-100 text-red-800'],
 }
