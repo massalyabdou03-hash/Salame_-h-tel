@@ -135,7 +135,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-5xl space-y-4 px-3 pb-24 pt-4 md:px-4 md:pb-6">
+        <main className="mx-auto max-w-5xl space-y-4 px-3 pb-28 pt-4 md:px-4 md:pb-6">
           {loadErr && <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
           {page}
         </main>
