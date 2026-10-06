@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { fcfa, fdate } from './utils'
+import { CACHET, SIGNATURE } from './assets'
 
 const GREEN = [31, 77, 58]
 const GOLD = [184, 134, 43]
@@ -40,6 +41,17 @@ function flow(doc, y, text, { size = 10, bold = false, color = 30, x = 15, w = 1
   return y + h + gap
 }
 
+// Cachet + signature : bloc de 50 mm de large centré sur cx, haut à y. Renvoie la hauteur utilisée.
+// Le cachet est en bas, la signature au-dessus à droite (elle ne touche que le haut du cachet).
+function seal(doc, cx, y) {
+  const W = 50, H = W * 5 / 6
+  const sw = 46, sh = sw * CACHET.h / CACHET.w
+  const gw = 26, gh = gw * SIGNATURE.h / SIGNATURE.w
+  doc.addImage(CACHET.src, 'PNG', cx - sw / 2, y + H - sh, sw, sh)
+  doc.addImage(SIGNATURE.src, 'PNG', cx - 5, y, gw, gh)
+  return H
+}
+
 export function buildInvoice(info, b, inv) {
   const doc = newDoc()
   header(doc, info, 'FACTURE', `N° ${inv.number}`)
@@ -73,6 +85,14 @@ export function buildInvoice(info, b, inv) {
   doc.text('Reste à payer', 120, y + 18.5); doc.text(m(Number(inv.total) - Number(inv.advance)), 192, y + 18.5, { align: 'right' })
 
   flow(doc, y + 34, `Mode de paiement : ${b.payment_mode}. Modes acceptés : Espèces, Orange Money, Virement, Chèque.`, { size: 9, color: GREY })
+
+  let sy = y + 52
+  if (sy > 235) { doc.addPage(); sy = 25 }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30)
+  doc.text('La direction', 155, sy, { align: 'center' })
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GREY)
+  doc.text(info.manager, 155, sy + 5, { align: 'center' })
+  seal(doc, 155, sy + 8)
   footer(doc, info)
   return doc
 }
@@ -105,13 +125,14 @@ export function buildContract(info, b) {
   y = flow(doc, y, 'Article 3 - Règlement intérieur', { size: 11, bold: true, color: GREEN })
   RULES(b.units.max_guests).forEach(([t, d]) => { y = flow(doc, y, `${t} : ${d}`, { gap: 2.5 }) })
 
-  if (y > 235) { doc.addPage(); y = 20 }
+  if (y > 215) { doc.addPage(); y = 20 }
   y += 12
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30)
   doc.text('Le bailleur', 55, y, { align: 'center' }); doc.text('Le client', 155, y, { align: 'center' })
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GREY)
   doc.text(info.manager, 55, y + 5, { align: 'center' }); doc.text('« Lu et approuvé »', 155, y + 5, { align: 'center' })
-  doc.setDrawColor(150); doc.setLineWidth(0.3); doc.line(25, y + 28, 85, y + 28); doc.line(125, y + 28, 185, y + 28)
+  const sh = seal(doc, 55, y + 8)
+  doc.setDrawColor(150); doc.setLineWidth(0.3); doc.line(25, y + 9 + sh, 85, y + 9 + sh); doc.line(125, y + 9 + sh, 185, y + 9 + sh)
   footer(doc, info)
   return doc
 }
@@ -123,4 +144,3 @@ export async function sharePdf(doc, filename) {
     try { await navigator.share({ files: [file], title: filename }); return } catch (e) { if (e.name === 'AbortError') return }
   }
   doc.save(filename)
-}
