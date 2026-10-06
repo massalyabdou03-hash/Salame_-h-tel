@@ -7,7 +7,7 @@ export const GIE = {
   address: 'Santhiaba – Ziguinchor (BD 54 Route Kandé)',
   phones: '77 671 18 26 / 77 659 26 11',
 }
-export const PAY_MODES = ['Espèces', 'Orange Money', 'Virement', 'Chèque']
+export const PAY_MODES = ['Espèces', 'Orange Money', 'Virement', 'Chèque', 'Wave']
 export const EXPENSE_CATS = ['Plomberie', 'Électricité', 'Maintenance', "Produits d'entretien", 'Équipements', 'Autre']
 
 export const fcfa = (n) => new Intl.NumberFormat('fr-FR').format(Math.round(Number(n) || 0)) + ' FCFA'
