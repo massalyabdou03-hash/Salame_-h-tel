@@ -14,10 +14,167 @@
 @media print { * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
 
 @layer components {
-  .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-salam-600 focus:outline-none focus:ring-2 focus:ring-salam-100; }
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50; }
-  .btn-primary { @apply bg-salam-700 text-white hover:bg-salam-600; }
-  .btn-gold { @apply bg-gold text-white; }
-  .btn-ghost { @apply border border-slate-300 bg-white text-slate-700; }
-  .card { @apply rounded-xl border border-slate-200 bg-white p-4; }
+  /* ================================================================
+     INPUTS
+     ================================================================ */
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-salam-600 focus:outline-none focus:ring-2 focus:ring-salam-100;
+  }
+
+  /* ================================================================
+     BUTTONS - BASE
+     ================================================================ */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-95;
+  }
+
+  /* ================================================================
+     BUTTONS - PRIMARY (Main Actions)
+     ================================================================ */
+  .btn-primary {
+    @apply bg-salam-700 text-white shadow-sm hover:bg-salam-600 focus-visible:ring-salam-200;
+  }
+
+  /* ================================================================
+     BUTTONS - SUCCESS (Financial Actions)
+     ================================================================ */
+  .btn-success {
+    @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-200;
+  }
+
+  /* ================================================================
+     BUTTONS - SECONDARY (Modify, Invoice, Contract)
+     ================================================================ */
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-400 focus-visible:ring-slate-200;
+  }
+
+  /* ================================================================
+     BUTTONS - DANGER (Destructive Actions)
+     ================================================================ */
+  .btn-danger {
+    @apply border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 focus-visible:ring-red-200;
+  }
+
+  /* ================================================================
+     BUTTONS - LEGACY (Compatibility)
+     ================================================================ */
+  .btn-gold {
+    @apply bg-gold text-white shadow-sm hover:bg-gold/90 focus-visible:ring-gold/20;
+  }
+
+  .btn-ghost {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  /* ================================================================
+     CARDS
+     ================================================================ */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-sm;
+  }
+
+  /* ================================================================
+     STAT CARDS - WARNING (Remaining Payment)
+     ================================================================ */
+  .stat-card-warning {
+    @apply flex items-center justify-between rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4;
+  }
+
+  .stat-card-warning p:first-child {
+    @apply text-xs font-medium uppercase tracking-wide text-amber-700;
+  }
+
+  .stat-card-warning p:last-child {
+    @apply text-2xl font-extrabold text-amber-900;
+  }
+
+  /* ================================================================
+     STAT CARDS - SUCCESS (Paid Full)
+     ================================================================ */
+  .stat-card-success {
+    @apply flex items-center justify-between rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4;
+  }
+
+  .stat-card-success p:first-child {
+    @apply text-xs font-medium uppercase tracking-wide text-emerald-700;
+  }
+
+  .stat-card-success p:last-child {
+    @apply text-2xl font-extrabold text-emerald-800;
+  }
+
+  /* ================================================================
+     BADGES - FILTERS
+     ================================================================ */
+  .badge-filter {
+    @apply whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  .badge-filter-active {
+    @apply border-salam-700 bg-salam-700 text-white shadow-sm focus-visible:ring-salam-200;
+  }
+
+  .badge-filter-idle {
+    @apply border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-slate-200;
+  }
+
+  /* ================================================================
+     SECTION DIVIDER
+     ================================================================ */
+  .section-divider {
+    @apply border-t border-slate-200 pt-4;
+  }
+
+  /* ================================================================
+     SCROLLBAR HIDE (for horizontal scroll)
+     ================================================================ */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ================================================================
+     KPI DASHBOARD - CARDS
+     ================================================================ */
+  .kpi-card {
+    @apply rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-sm;
+  }
+
+  .kpi-card-header {
+    @apply flex items-start justify-between;
+  }
+
+  .kpi-label {
+    @apply text-xs font-medium uppercase tracking-wide;
+  }
+
+  .kpi-value {
+    @apply mt-2 text-3xl font-extrabold;
+  }
+
+  .kpi-icon-wrapper {
+    @apply rounded-xl p-3;
+  }
+
+  /* ================================================================
+     RESPONSIVE UTILITIES
+     ================================================================ */
+  @media (max-width: 640px) {
+    .btn {
+      @apply px-3 py-1.5 text-xs;
+    }
+
+    .card {
+      @apply p-3;
+    }
+
+    .kpi-value {
+      @apply text-2xl;
+    }
+  }
 }
