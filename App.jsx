@@ -135,32 +135,32 @@ export default function App() {
           </div>
         </header>
 
-        <nav className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.06)] backdrop-blur md:static md:border-t-0 md:border-b md:bg-transparent md:px-0 md:pb-0 md:pt-0 md:shadow-none">
-          <div className="mx-auto flex max-w-5xl items-center gap-1 md:gap-2 md:py-3">
+        <main className="mx-auto max-w-5xl space-y-4 px-3 pb-24 pt-4 md:px-4 md:pb-6">
+          {loadErr && <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
+          {page}
+        </main>
+
+        <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="mx-auto flex max-w-5xl items-center gap-2">
             {TABS.map(([id, label, Icon]) => {
               const active = tab === id
               return (
                 <button
                   key={id}
                   onClick={() => setTab(id)}
-                  className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition-all md:flex-row md:gap-2 md:rounded-xl md:px-4 md:text-sm ${
+                  className={`flex flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-2.5 text-[10px] font-semibold transition-all duration-200 ${
                     active
-                      ? 'bg-salam-50 text-salam-700 shadow-sm ring-1 ring-salam-100 md:bg-salam-700 md:text-white md:ring-0'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-gradient-to-br from-salam-50 to-salam-100 text-salam-700 shadow-sm ring-1.5 ring-salam-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon size={18} />
-                  <span>{label}</span>
+                  <Icon size={20} />
+                  <span className="leading-tight">{label}</span>
                 </button>
               )
             })}
           </div>
         </nav>
-
-        <main className="mx-auto max-w-5xl space-y-4 px-3 pb-24 pt-4 md:px-4 md:pb-6">
-          {loadErr && <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
-          {page}
-        </main>
       </div>
     </>
   )
