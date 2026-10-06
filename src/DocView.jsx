@@ -104,7 +104,7 @@ export default function DocView({ doc, onClose }) {
   const { type, booking, invoice } = doc
   return (
     <div className="min-h-screen bg-slate-200 print:bg-white">
-      <div className="sticky top-0 flex flex-wrap gap-2 bg-salam-900 p-3 print:hidden">
+      <div className="sticky top-0 z-50 flex flex-wrap gap-2 bg-salam-900 p-3 print:hidden">
         <button className="btn bg-white text-slate-800" onClick={onClose}><ArrowLeft size={16} /> Retour</button>
         <button className="btn btn-gold" onClick={() => window.print()}><Printer size={16} /> Imprimer / Enregistrer en PDF</button>
       </div>
