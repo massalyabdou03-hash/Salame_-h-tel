@@ -29,35 +29,13 @@ function Login() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-salam-900 via-salam-800 to-slate-900 p-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-[28px] border border-white/10 bg-white/95 p-5 shadow-2xl shadow-slate-950/30 backdrop-blur-sm">
-        <div className="space-y-1 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Connexion</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-salam-700">{GIE.brand}</h1>
-        </div>
-
-        <div className="space-y-3">
-          <input
-            className="input"
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="input"
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        {err && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
-
-        <button className="btn btn-primary w-full rounded-2xl">Se connecter</button>
+    <div className="grid min-h-screen place-items-center bg-salam-900 p-4">
+      <form onSubmit={submit} className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-6">
+        <h1 className="text-xl font-bold text-salam-700">{GIE.brand}</h1>
+        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="input" type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        {err && <p className="text-sm text-red-600">{err}</p>}
+        <button className="btn btn-primary w-full">Se connecter</button>
       </form>
     </div>
   )
@@ -117,49 +95,38 @@ export default function App() {
   return (
     <>
       {doc && <DocView doc={doc} info={info} onClose={() => setDoc(null)} />}
-      <div className={`min-h-screen bg-slate-100 text-slate-900 ${doc ? 'hidden' : ''}`}>
-        <header className="sticky top-0 z-20 border-b border-salam-900/10 bg-gradient-to-r from-salam-900 via-salam-800 to-salam-700 text-white shadow-sm">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 md:px-5">
-            <div className="min-w-0">
-              <p className="truncate text-base font-extrabold leading-tight">{info.brand}</p>
-              <p className="truncate text-[11px] text-salam-100">Gérante : {info.manager}</p>
-            </div>
-
-            <button
-              onClick={() => supabase.auth.signOut()}
-              aria-label="Se déconnecter"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white transition hover:bg-white/10"
-            >
-              <LogOut size={18} />
-            </button>
+      <div className={`min-h-screen bg-slate-50 text-slate-900 ${doc ? 'hidden' : ''}`}>
+        <header className="flex items-center justify-between bg-salam-700 px-4 py-3 text-white">
+          <div>
+            <p className="font-bold leading-tight">{info.brand}</p>
+            <p className="text-xs text-salam-100">Gérante : {info.manager}</p>
           </div>
+          <button onClick={() => supabase.auth.signOut()} aria-label="Se déconnecter"><LogOut size={20} /></button>
         </header>
 
-        <main className="mx-auto max-w-5xl space-y-4 px-3 pb-28 pt-4 md:px-4 md:pb-6">
-          {loadErr && <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
+        <main className="mx-auto max-w-5xl space-y-4 p-4 pb-28">
+          {loadErr && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
           {page}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center gap-2">
-            {TABS.map(([id, label, Icon]) => {
-              const active = tab === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => setTab(id)}
-                  className={`flex flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-2.5 text-[10px] font-semibold transition-all duration-200 ${
-                    active
-                      ? 'bg-gradient-to-br from-salam-50 to-salam-100 text-salam-700 shadow-sm ring-1.5 ring-salam-200'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="leading-tight">{label}</span>
-                </button>
-              )
-            })}
-          </div>
+        <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-slate-200 bg-white shadow-lg gap-1 p-2">
+          {TABS.map(([id, label, Icon]) => {
+            const active = tab === id
+            return (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-2 px-1 text-[10px] font-semibold transition-all ${
+                  active
+                    ? 'bg-salam-100 text-salam-700 shadow-sm ring-1 ring-salam-200'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            )
+          })}
         </nav>
       </div>
     </>
