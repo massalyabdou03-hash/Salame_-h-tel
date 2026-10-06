@@ -1,6 +1,7 @@
 import { Printer, ArrowLeft, Share2, Download } from 'lucide-react'
 import { fcfa, fdate } from './utils'
 import { buildInvoice, buildContract, sharePdf, RULES } from './pdf'
+import { CACHET, SIGNATURE } from './assets'
 
 function Header({ info, title, subtitle }) {
   return (
@@ -17,6 +18,16 @@ function Header({ info, title, subtitle }) {
         <p className="text-sm">{subtitle}</p>
       </div>
     </header>
+  )
+}
+
+// Cachet + signature de la gérante : le cachet en bas, la signature au-dessus à droite
+function Seal({ className = '' }) {
+  return (
+    <div className={`relative mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] ${className}`}>
+      <img src={CACHET.src} alt="Cachet" className="absolute bottom-0 left-1/2 w-[92%] -translate-x-1/2" />
+      <img src={SIGNATURE.src} alt="Signature" className="absolute left-[40%] top-0 w-[52%]" />
+    </div>
   )
 }
 
@@ -50,6 +61,11 @@ function Invoice({ info, b, inv }) {
         <p className="flex justify-between rounded bg-salam-700 p-2 text-white"><span>Reste à payer</span><b>{fcfa(balance)}</b></p>
       </div>
       <p className="mt-6 text-xs text-slate-600">Mode de paiement : {b.payment_mode}. Modes acceptés : Espèces, Orange Money, Virement, Chèque.</p>
+      <div className="ml-auto mt-8 w-64 break-inside-avoid text-center text-sm">
+        <p className="font-semibold">La direction</p>
+        <p className="text-xs text-slate-500">{info.manager}</p>
+        <Seal />
+      </div>
     </>
   )
 }
@@ -75,9 +91,17 @@ function Contract({ info, b }) {
       </ul>
       <h3 className="mt-5 font-bold text-salam-700">Article 3 — Règlement intérieur</h3>
       <ul className="space-y-1 text-sm">{RULES(b.units.max_guests).map(([t, d]) => <li key={t}><b>{t} :</b> {d}</li>)}</ul>
-      <div className="mt-10 grid grid-cols-2 gap-8 text-center text-sm">
-        <div><p className="font-semibold">Le bailleur</p><p className="text-xs text-slate-500">{info.manager}</p><div className="mt-12 border-t" /></div>
-        <div><p className="font-semibold">Le client</p><p className="text-xs text-slate-500">« Lu et approuvé »</p><div className="mt-12 border-t" /></div>
+      <div className="mt-10 grid grid-cols-2 gap-8 break-inside-avoid text-center text-sm">
+        <div>
+          <p className="font-semibold">Le bailleur</p>
+          <p className="text-xs text-slate-500">{info.manager}</p>
+          <Seal className="border-b" />
+        </div>
+        <div>
+          <p className="font-semibold">Le client</p>
+          <p className="text-xs text-slate-500">« Lu et approuvé »</p>
+          <div className="mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] border-b" />
+        </div>
       </div>
     </>
   )
@@ -89,7 +113,7 @@ export default function DocView({ doc, info, onClose }) {
   const filename = (type === 'invoice' ? `Facture-${invoice.number}` : `Contrat-${b.clients.last_name}-${b.units.name}`).replace(/[^\w-]+/g, '_') + '.pdf'
   return (
     <div className="min-h-screen bg-slate-200 print:bg-white">
-      <div className="sticky top-0 z-10 flex flex-wrap gap-2 bg-salam-900 p-3 print:hidden">
+      <div className="sticky top-0 z-10 flex flex-wrap gap-2 bg-salam-900 p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] print:hidden">
         <button className="btn bg-white text-slate-800" onClick={onClose}><ArrowLeft size={16} /> Retour</button>
         <button className="btn btn-gold" onClick={() => sharePdf(make(), filename)}><Share2 size={16} /> Partager / Enregistrer PDF</button>
         <button className="btn bg-white text-slate-800" onClick={() => make().save(filename)}><Download size={16} /> Télécharger</button>
