@@ -27,7 +27,7 @@ create table bookings (
   check_in date not null,
   check_out date not null,
   nights int generated always as (check_out - check_in) stored,
-  payment_mode text not null check (payment_mode in ('Espèces','Orange Money','Virement','Chèque')),
+  payment_mode text not null check (payment_mode in ('Espèces','Orange Money','Virement','Chèque','Wave')),
   total_amount numeric(12,0) not null check (total_amount >= 0),
   advance numeric(12,0) not null default 0 check (advance >= 0),
   status text not null default 'confirmee' check (status in ('confirmee','annulee')),
