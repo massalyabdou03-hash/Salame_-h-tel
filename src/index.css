@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --color-salam-50: #eef5f1;
+  --color-salam-100: #d5e6dc;
+  --color-salam-600: #2c6b52;
+  --color-salam-700: #1f4d3a;
+  --color-salam-900: #12301f;
+  --color-gold: #b8862b;
+}
+
+@page { size: A4; margin: 12mm; }
+@media print { * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+
+@layer components {
+  .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-salam-600 focus:outline-none focus:ring-2 focus:ring-salam-100; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50; }
+  .btn-primary { @apply bg-salam-700 text-white hover:bg-salam-600; }
+  .btn-gold { @apply bg-gold text-white; }
+  .btn-ghost { @apply border border-slate-300 bg-white text-slate-700; }
+  .card { @apply rounded-xl border border-slate-200 bg-white p-4; }
+}
