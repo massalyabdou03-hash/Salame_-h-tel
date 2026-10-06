@@ -12,24 +12,36 @@ export default function Expenses({ data, reload }) {
   const [cat, setCat] = useState('')
   const [month, setMonth] = useState('')
   const [err, setErr] = useState('')
+  const [ok, setOk] = useState('')
+  const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   const add = async (e) => {
     e.preventDefault()
+    setErr(''); setOk('')
+    const amount = Number(f.amount)
+    if (!f.category) return setErr('Choisissez une catégorie.')
+    if (!amount || amount <= 0) return setErr('Saisissez un montant supérieur à 0.')
+    setBusy(true)
+    // Charge utile explicite : chaque colonne est envoyée avec une valeur sûre
     const { error } = await supabase.from('expenses').insert({
-      ...f,
-      amount: Number(f.amount),
+      category: f.category,
+      amount,
       unit_id: f.unit_id ? Number(f.unit_id) : null,
+      description: f.description.trim() || null,
+      spent_on: f.spent_on || today(),
     })
-    if (error) return setErr(error.message)
-    setErr('')
+    setBusy(false)
+    if (error) return setErr(`Échec de l'enregistrement : ${error.message}`)
+    setOk('Dépense enregistrée.')
     setF({ ...f, amount: '', description: '', unit_id: '' })
     reload()
   }
 
   const remove = async (id) => {
     if (!confirm('Supprimer cette dépense ?')) return
-    await supabase.from('expenses').delete().eq('id', id)
+    const { error } = await supabase.from('expenses').delete().eq('id', id)
+    if (error) return alert(error.message)
     reload()
   }
 
@@ -42,9 +54,11 @@ export default function Expenses({ data, reload }) {
         <h2 className="font-bold">Ajouter une dépense</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Catégorie">
-            <select className="input" value={f.category} onChange={set('category')}>{EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}</select>
+            <select className="input" value={f.category} onChange={set('category')}>
+              {EXPENSE_CATS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </Field>
-          <Field label="Montant (FCFA)"><input className="input" type="number" min="1" required value={f.amount} onChange={set('amount')} /></Field>
+          <Field label="Montant (FCFA)"><input className="input" type="number" inputMode="numeric" min="1" required value={f.amount} onChange={set('amount')} /></Field>
           <Field label="Logement concerné (optionnel)">
             <select className="input" value={f.unit_id} onChange={set('unit_id')}>
               <option value="">Aucun</option>
@@ -54,14 +68,15 @@ export default function Expenses({ data, reload }) {
           <Field label="Date"><input className="input" type="date" required value={f.spent_on} onChange={set('spent_on')} /></Field>
         </div>
         <Field label="Description"><input className="input" value={f.description} onChange={set('description')} /></Field>
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        <button className="btn btn-primary">Enregistrer la dépense</button>
+        {err && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{err}</p>}
+        {ok && <p className="rounded-lg bg-emerald-50 p-2 text-sm text-emerald-700">{ok}</p>}
+        <button className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer la dépense'}</button>
       </form>
 
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Filtrer par catégorie">
           <select className="input" value={cat} onChange={(e) => setCat(e.target.value)}>
-            <option value="">Toutes</option>{EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}
+            <option value="">Toutes</option>{EXPENSE_CATS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Field>
         <Field label="Mois"><input className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></Field>

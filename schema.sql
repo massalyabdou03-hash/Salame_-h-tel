@@ -53,7 +53,7 @@ create table invoices (
 
 create table expenses (
   id uuid primary key default gen_random_uuid(),
-  category text not null check (category in ('Plomberie','Électricité','Maintenance','Produits d''entretien','Équipements','Autre')),
+  category text not null default 'Autre' check (category in ('Plomberie','Électricité','Maintenance','Produits d''entretien','Équipements','Autre')),
   amount numeric(12,0) not null check (amount > 0),
   unit_id int references units(id) on delete set null,
   description text,
@@ -75,3 +75,17 @@ select 'Rez ' || n, 'Rez-de-chaussée', 'Chambre simple', 2 from generate_series
 union all select 'Étage ' || n, 'Étage', 'Chambre double', 2 from generate_series(7,10) n
 union all select 'Duplex ' || n, 'Duplex', 'Duplex', 4 from generate_series(11,13) n
 union all select 'Appartement 14', 'Appartement', 'Appartement', 4;
+
+-- Réglages modifiables depuis l'application (gérante, téléphones, adresse)
+create table settings (key text primary key, value text not null);
+alter table settings enable row level security;
+create policy "staff_all" on settings for all to authenticated using (true) with check (true);
+insert into settings (key, value) values
+  ('brand', 'Salame Hôtel'),
+  ('manager', 'Madame Gniang'),
+  ('phones', '77 671 18 26 / 77 659 26 11'),
+  ('address', 'Santhiaba – Ziguinchor (BD 54 Route Kandé)');
+
+create index bookings_client_idx on bookings(client_id);
+create index expenses_date_idx on expenses(spent_on);
+create index expenses_unit_idx on expenses(unit_id);

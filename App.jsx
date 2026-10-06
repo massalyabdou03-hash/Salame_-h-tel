@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LayoutDashboard, CalendarPlus, Users, Receipt, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, Users, Receipt, Settings, LogOut } from 'lucide-react'
 import { supabase } from './supabase'
 import { GIE } from './utils'
 import Dashboard from './Dashboard'
 import Bookings from './Bookings'
-import Expenses from './Expenses'
 import Clients from './Clients'
+import Expenses from './Expenses'
+import Reglages from './Reglages'
 import DocView from './DocView'
 
 const TABS = [
-  ['dash', 'Tableau de bord', LayoutDashboard],
+  ['dash', 'Accueil', LayoutDashboard],
   ['res', 'Réservations', CalendarPlus],
   ['cli', 'Clients', Users],
   ['dep', 'Dépenses', Receipt],
+  ['set', 'Réglages', Settings],
 ]
 
 function Login() {
@@ -41,7 +43,8 @@ export default function App() {
   const [session, setSession] = useState(undefined)
   const [tab, setTab] = useState('dash')
   const [doc, setDoc] = useState(null)
-  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [] })
+  const [loadErr, setLoadErr] = useState('')
+  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], settings: {} })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -50,13 +53,20 @@ export default function App() {
   }, [])
 
   const reload = useCallback(async () => {
-    const [u, c, b, e] = await Promise.all([
+    const res = await Promise.all([
       supabase.from('units').select('*').order('id'),
       supabase.from('clients').select('*').order('last_name'),
       supabase.from('bookings').select('*, clients(*), units(*)').order('check_in', { ascending: false }),
       supabase.from('expenses').select('*, units(name)').order('spent_on', { ascending: false }),
+      supabase.from('settings').select('*'),
     ])
-    setData({ units: u.data ?? [], clients: c.data ?? [], bookings: b.data ?? [], expenses: e.data ?? [] })
+    const failed = res.find((r) => r.error)
+    setLoadErr(failed ? `Chargement impossible : ${failed.error.message}` : '')
+    const [u, c, b, e, s] = res
+    setData({
+      units: u.data ?? [], clients: c.data ?? [], bookings: b.data ?? [], expenses: e.data ?? [],
+      settings: Object.fromEntries((s.data ?? []).map((r) => [r.key, r.value])),
+    })
   }, [])
 
   useEffect(() => { if (session) reload() }, [session, reload])
@@ -64,37 +74,44 @@ export default function App() {
   if (session === undefined) return null
   if (!session) return <Login />
 
+  // Infos de l'établissement : valeurs par défaut + ce qui est saisi dans Réglages
+  const info = { ...GIE, ...Object.fromEntries(Object.entries(data.settings).filter(([, v]) => v)) }
+
   const page = {
     dash: <Dashboard data={data} reload={reload} />,
     res: <Bookings data={data} reload={reload} openDoc={setDoc} />,
     cli: <Clients data={data} openDoc={setDoc} />,
     dep: <Expenses data={data} reload={reload} />,
+    set: <Reglages data={data} info={info} reload={reload} />,
   }[tab]
 
   return (
     <>
-    {doc && <DocView doc={doc} onClose={() => setDoc(null)} />}
-    <div className={`min-h-screen bg-slate-50 text-slate-900 ${doc ? 'hidden' : ''}`}>
-      <header className="flex items-center justify-between bg-salam-700 px-4 py-3 text-white">
-        <div>
-          <p className="font-bold leading-tight">{GIE.brand}</p>
-          <p className="text-xs text-salam-100">Gérante : {GIE.manager}</p>
-        </div>
-        <button onClick={() => supabase.auth.signOut()} aria-label="Se déconnecter"><LogOut size={20} /></button>
-      </header>
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t bg-white md:static md:justify-center md:gap-2 md:border-b md:border-t-0 md:py-2">
-        {TABS.map(([id, label, Icon]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs md:flex-none md:flex-row md:gap-2 md:rounded-lg md:px-4 md:text-sm ${tab === id ? 'font-semibold text-salam-700 md:bg-salam-50' : 'text-slate-500'}`}
-          >
-            <Icon size={20} />{label}
-          </button>
-        ))}
-      </nav>
-      <main className="mx-auto max-w-5xl space-y-4 p-4 pb-24 md:pb-6">{page}</main>
-    </div>
+      {doc && <DocView doc={doc} info={info} onClose={() => setDoc(null)} />}
+      <div className={`min-h-screen bg-slate-50 text-slate-900 ${doc ? 'hidden' : ''}`}>
+        <header className="flex items-center justify-between bg-salam-700 px-4 py-3 text-white">
+          <div>
+            <p className="font-bold leading-tight">{info.brand}</p>
+            <p className="text-xs text-salam-100">Gérante : {info.manager}</p>
+          </div>
+          <button onClick={() => supabase.auth.signOut()} aria-label="Se déconnecter"><LogOut size={20} /></button>
+        </header>
+        <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t bg-white md:static md:justify-center md:gap-2 md:border-b md:border-t-0 md:py-2">
+          {TABS.map(([id, label, Icon]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] md:flex-none md:flex-row md:gap-2 md:rounded-lg md:px-4 md:text-sm ${tab === id ? 'font-semibold text-salam-700 md:bg-salam-50' : 'text-slate-500'}`}
+            >
+              <Icon size={20} />{label}
+            </button>
+          ))}
+        </nav>
+        <main className="mx-auto max-w-5xl space-y-4 p-4 pb-24 md:pb-6">
+          {loadErr && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
+          {page}
+        </main>
+      </div>
     </>
   )
 }
