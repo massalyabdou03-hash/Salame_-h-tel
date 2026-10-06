@@ -57,6 +57,20 @@ export default function Reglages({ data, info, reload }) {
     reload()
   }
 
+  const deleteUnit = async (u) => {
+    const confirmed = window.confirm(`Voulez-vous vraiment supprimer le logement "${u.name}" ?`)
+    if (!confirmed) return
+
+    const { error } = await supabase.from('units').delete().eq('id', u.id)
+    if (error) {
+      setMsg(`Erreur : ${error.message}`)
+      return
+    }
+
+    setMsg(`${u.name} a été supprimé.`)
+    reload()
+  }
+
   const saveUnit = async (u, patch) => {
     const { error } = await supabase.from('units').update(patch).eq('id', u.id)
     setMsg(error ? `Erreur : ${error.message}` : `${u.name} mis à jour.`)
@@ -134,7 +148,7 @@ export default function Reglages({ data, info, reload }) {
       <p className="text-xs text-slate-500">Les modifications s'enregistrent automatiquement quand vous quittez le champ.</p>
       <ul className="space-y-2">
         {data.units.map((u) => (
-          <li key={`${u.id}-${u.price_per_night}-${u.type}-${u.max_guests}`} className="card grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <li key={`${u.id}-${u.price_per_night}-${u.type}-${u.max_guests}`} className="card grid grid-cols-2 gap-2 sm:grid-cols-5">
             <p className="col-span-2 self-center font-semibold sm:col-span-1">{u.name}</p>
             <select className="input" defaultValue={u.type} onChange={(e) => saveUnit(u, { type: e.target.value })}>
               {UNIT_TYPES.map((t) => <option key={t}>{t}</option>)}
@@ -147,6 +161,13 @@ export default function Reglages({ data, info, reload }) {
               <input className="input mt-1" type="number" inputMode="numeric" min="1" defaultValue={u.max_guests}
                 onBlur={(e) => Number(e.target.value) !== Number(u.max_guests) && saveUnit(u, { max_guests: Math.max(1, Number(e.target.value) || 1) })} />
             </label>
+            <button
+              type="button"
+              className="btn btn-danger self-end"
+              onClick={() => deleteUnit(u)}
+            >
+              Supprimer
+            </button>
           </li>
         ))}
       </ul>
