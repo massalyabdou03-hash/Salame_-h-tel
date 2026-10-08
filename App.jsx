@@ -97,9 +97,13 @@ export default function App() {
     })
   }, [])
 
+  // On recharge les données seulement quand l'utilisateur change (connexion / déconnexion),
+  // pas à chaque renouvellement du jeton, sinon on boucle et Supabase bloque (erreur 429).
+  const userId = session?.user?.id
+
   useEffect(() => {
-    if (session) reload()
-  }, [session, reload])
+    if (userId) reload()
+  }, [userId, reload])
 
   if (session === undefined) return null
   if (!session) return <Login />
