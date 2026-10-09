@@ -6,7 +6,8 @@ import {
   Ban,
   Pencil,
   Banknote,
-  CalendarDays
+  CalendarDays,
+  Trash2
 } from 'lucide-react'
 
 import { supabase } from './supabase'
@@ -48,6 +49,42 @@ export default function Bookings({ data, reload, openDoc }) {
       .from('bookings')
       .update({ status: 'annulee' })
       .eq('id', b.id)
+
+    reload()
+  }
+
+  const remove = async (b) => {
+    if (b.commission_paid_at) {
+      alert("Impossible : la commission du courtier a déjà été versée pour cette réservation. Annulez d'abord le versement dans l'onglet Courtiers.")
+      return
+    }
+
+    // La facture de la réservation est supprimée avec elle : on prévient avant de confirmer
+    const { data: inv } = await supabase
+      .from('invoices')
+      .select('number')
+      .eq('booking_id', b.id)
+      .maybeSingle()
+
+    let msg = `Supprimer définitivement cette réservation ?\n\n${b.clients.first_name} ${b.clients.last_name} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}`
+    if (inv) msg += `\n\nLa facture ${inv.number} sera supprimée aussi.`
+    msg += '\n\nCette action ne peut pas être annulée.'
+    if (!confirm(msg)) return
+
+    if (b.status !== 'annulee' && Number(b.advance) > 0) {
+      if (!confirm(`Dernière confirmation : une avance de ${fcfa(b.advance)} est enregistrée sur cette réservation. Supprimer quand même ?`)) return
+    }
+
+    const { error } = await supabase.from('bookings').delete().eq('id', b.id)
+
+    if (error) {
+      alert(
+        error.message.includes('COMMISSION_VERSEE')
+          ? "Impossible : la commission du courtier a déjà été versée. Annulez d'abord le versement dans l'onglet Courtiers."
+          : `Suppression impossible : ${error.message}`
+      )
+      return
+    }
 
     reload()
   }
@@ -103,6 +140,8 @@ export default function Bookings({ data, reload, openDoc }) {
           }
           units={data.units}
           clients={data.clients}
+          brokers={data.brokers}
+          reloadBrokers={reload}
           onCancel={() => setForm(null)}
           onDone={() => {
             setForm(null)
@@ -312,7 +351,7 @@ export default function Bookings({ data, reload, openDoc }) {
                         Contrat
                       </button>
 
-                      <div className="ml-auto">
+                      <div className="ml-auto flex gap-2">
                         <button
                           className="btn btn-danger"
                           onClick={() =>
@@ -323,9 +362,34 @@ export default function Bookings({ data, reload, openDoc }) {
                           <Ban size={16} />
                           Annuler
                         </button>
+
+                        <button
+                          className="btn btn-danger"
+                          onClick={() =>
+                            remove(b)
+                          }
+                          aria-label="Supprimer la réservation"
+                        >
+                          <Trash2 size={16} />
+                          Supprimer
+                        </button>
                       </div>
 
                     </div>
+                  </div>
+                )}
+
+                {stage === 'annulee' && (
+                  <div className="section-divider">
+                    <button
+                      className="btn btn-danger"
+                      onClick={() =>
+                        remove(b)
+                      }
+                    >
+                      <Trash2 size={16} />
+                      Supprimer définitivement
+                    </button>
                   </div>
                 )}
 
