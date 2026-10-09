@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Wallet, TrendingDown, PiggyBank, BedDouble, Banknote, Wrench, LogIn, LogOut, CalendarPlus } from 'lucide-react'
+import { Wallet, TrendingDown, PiggyBank, BedDouble, Banknote, Wrench, LogIn, LogOut, CalendarPlus, Handshake } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, today, addDays, isActive, stageOf, STAGE } from './utils'
 
@@ -193,7 +193,7 @@ function PastBookings({ bookings }) {
       </ul>
 
       {rows.length > limit && (
-        <button type="button" className="btn btn-ghost w-full" onClick={() => setLimit(limit + 15)}>
+        <button type="button" className="btn btn-secondary w-full" onClick={() => setLimit(limit + 15)}>
           Afficher plus ({rows.length - limit} restantes)
         </button>
       )}
@@ -210,6 +210,8 @@ export default function Dashboard({ data, reload }) {
   // Recettes = montant total des réservations non annulées dont l'arrivée tombe dans le mois
   const revenue = live.filter((b) => b.check_in.startsWith(month)).reduce((s, b) => s + Number(b.total_amount), 0)
   const spent = expenses.filter((e) => e.spent_on.startsWith(month)).reduce((s, e) => s + Number(e.amount), 0)
+  // Commissions des courtiers : même règle de mois que les recettes (mois d'arrivée), réservations annulées exclues
+  const commissions = live.filter((b) => b.check_in.startsWith(month)).reduce((s, b) => s + Number(b.commission_amount || 0), 0)
   const due = live.reduce((s, b) => s + (Number(b.total_amount) - Number(b.advance)), 0)
 
   const current = (u) => bookings.find((b) => b.unit_id === u.id && isActive(b, t))
@@ -222,10 +224,11 @@ export default function Dashboard({ data, reload }) {
     reload()
   }
 
-  const net = revenue - spent
+  const net = revenue - spent - commissions
   const kpis = [
     ['Recettes du mois', fcfa(revenue), Wallet, 'text-salam-700'],
     ['Dépenses du mois', fcfa(spent), TrendingDown, 'text-red-700'],
+    ['Commissions du mois', fcfa(commissions), Handshake, 'text-amber-700'],
     ['Bénéfice net', fcfa(net), PiggyBank, net >= 0 ? 'text-salam-700' : 'text-red-700'],
     ["Taux d'occupation", `${rate} %`, BedDouble, 'text-gold'],
     ['Soldes à encaisser', fcfa(due), Banknote, due > 0 ? 'text-red-700' : 'text-salam-700'],
@@ -233,9 +236,9 @@ export default function Dashboard({ data, reload }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {kpis.map(([label, value, Icon, color], i) => (
-          <div key={label} className={`card ${i === 4 ? 'col-span-2 md:col-span-1' : ''}`}>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {kpis.map(([label, value, Icon, color]) => (
+          <div key={label} className="card">
             <Icon size={18} className={color} />
             <p className="mt-2 text-xs text-slate-500">{label}</p>
             <p className={`text-lg font-bold ${color}`}>{value}</p>
