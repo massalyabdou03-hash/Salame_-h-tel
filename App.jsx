@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LayoutDashboard, CalendarPlus, Users, Receipt, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, Users, Receipt, Handshake, Settings, LogOut } from 'lucide-react'
 import { supabase } from './supabase'
 import { GIE } from './utils'
 import Dashboard from './Dashboard'
 import Bookings from './Bookings'
 import Clients from './Clients'
 import Expenses from './Expenses'
+import Courtiers from './Courtiers'
 import Reglages from './Reglages'
 import DocView from './DocView'
 
@@ -14,6 +15,7 @@ const TABS = [
   ['res', 'Réservations', CalendarPlus],
   ['cli', 'Clients', Users],
   ['dep', 'Dépenses', Receipt],
+  ['cou', 'Courtiers', Handshake],
   ['set', 'Réglages', Settings],
 ]
 
@@ -68,7 +70,7 @@ export default function App() {
   const [tab, setTab] = useState('dash')
   const [doc, setDoc] = useState(null)
   const [loadErr, setLoadErr] = useState('')
-  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], settings: {} })
+  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], settings: {} })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -83,16 +85,18 @@ export default function App() {
       supabase.from('bookings').select('*, clients(*), units(*)').order('check_in', { ascending: false }),
       supabase.from('expenses').select('*, units(name)').order('spent_on', { ascending: false }),
       supabase.from('settings').select('*'),
+      supabase.from('brokers').select('*').order('name'),
     ])
 
     const failed = res.find((r) => r.error)
     setLoadErr(failed ? `Chargement impossible : ${failed.error.message}` : '')
-    const [u, c, b, e, s] = res
+    const [u, c, b, e, s, br] = res
     setData({
       units: u.data ?? [],
       clients: c.data ?? [],
       bookings: b.data ?? [],
       expenses: e.data ?? [],
+      brokers: br.data ?? [],
       settings: Object.fromEntries((s.data ?? []).map((r) => [r.key, r.value])),
     })
   }, [])
@@ -113,8 +117,9 @@ export default function App() {
   const page = {
     dash: <Dashboard data={data} reload={reload} />,
     res: <Bookings data={data} reload={reload} openDoc={setDoc} />,
-    cli: <Clients data={data} openDoc={setDoc} />,
+    cli: <Clients data={data} openDoc={setDoc} reload={reload} />,
     dep: <Expenses data={data} reload={reload} />,
+    cou: <Courtiers data={data} reload={reload} />,
     set: <Reglages data={data} info={info} reload={reload} />,
   }[tab]
 
@@ -152,7 +157,7 @@ export default function App() {
                 <button
                   key={id}
                   onClick={() => setTab(id)}
-                  className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition-all ${
+                  className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-semibold transition-all ${
                     active
                       ? 'bg-salam-50 text-salam-700 shadow-sm ring-1 ring-salam-100'
                       : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
