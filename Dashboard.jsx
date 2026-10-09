@@ -79,12 +79,12 @@ function DayHistory({ bookings, expenses }) {
 
   return (
     <div className="card space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="block text-sm">
+      <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+        <label className="block min-w-0 text-sm">
           <span className="mb-1 block font-medium text-slate-700">Jour</span>
-          <input className="input" type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value || today())} />
+          <input className="input min-w-0" type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value || today())} />
         </label>
-        <div className="text-right text-sm">
+        <div className="text-sm sm:text-right">
           <p>Réservations : <b>{fresh.length}</b> · <b>{fcfa(booked)}</b></p>
           <p>Dépenses du jour : <b className="text-red-700">{fcfa(spent)}</b></p>
         </div>
@@ -102,8 +102,8 @@ function DayHistory({ bookings, expenses }) {
             {x.b ? (
               <>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1 font-semibold"><CalendarPlus size={14} className="shrink-0 text-salam-600" />
-                    <span className="truncate">Réservation — {x.b.units?.name} · {x.b.clients?.first_name} {x.b.clients?.last_name}</span>
+                  <p className="flex items-start gap-1 font-semibold"><CalendarPlus size={14} className="mt-0.5 shrink-0 text-salam-600" />
+                    <span className="min-w-0 break-words">Réservation — {x.b.units?.name} · {x.b.clients?.first_name} {x.b.clients?.last_name}</span>
                   </p>
                   <p className="text-xs text-slate-500">
                     Du {fdate(x.b.check_in)} au {fdate(x.b.check_out)} · {x.b.nights} nuit{x.b.nights > 1 ? 's' : ''} · avance {fcfa(x.b.advance)}
@@ -115,8 +115,8 @@ function DayHistory({ bookings, expenses }) {
             ) : (
               <>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1 font-semibold"><TrendingDown size={14} className="shrink-0 text-red-700" />
-                    <span className="truncate">Dépense — {x.e.category}{x.e.units?.name && ` — ${x.e.units.name}`}</span>
+                  <p className="flex items-start gap-1 font-semibold"><TrendingDown size={14} className="mt-0.5 shrink-0 text-red-700" />
+                    <span className="min-w-0 break-words">Dépense — {x.e.category}{x.e.units?.name && ` — ${x.e.units.name}`}</span>
                   </p>
                   <p className="text-xs text-slate-500">
                     {x.e.description}
@@ -151,20 +151,20 @@ function PastBookings({ bookings }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-sm">
+      <div className="grid grid-cols-2 items-end gap-3">
+        <label className="block min-w-0 text-sm">
           <span className="mb-1 block font-medium text-slate-700">Afficher</span>
-          <select className="input" value={kind} onChange={(e) => { setKind(e.target.value); setLimit(15) }}>
+          <select className="input min-w-0" value={kind} onChange={(e) => { setKind(e.target.value); setLimit(15) }}>
             <option value="terminee">Terminées</option>
             <option value="annulee">Annulées</option>
             <option value="all">Terminées et annulées</option>
           </select>
         </label>
-        <label className="block text-sm">
+        <label className="block min-w-0 text-sm">
           <span className="mb-1 block font-medium text-slate-700">Mois d'arrivée</span>
-          <input className="input" type="month" value={month} onChange={(e) => { setMonth(e.target.value); setLimit(15) }} />
+          <input className="input min-w-0" type="month" value={month} onChange={(e) => { setMonth(e.target.value); setLimit(15) }} />
         </label>
-        <div className="ml-auto text-right text-sm">
+        <div className="col-span-2 text-sm">
           <p>{rows.length} réservation{rows.length > 1 ? 's' : ''} · Total <b>{fcfa(total)}</b></p>
           {unpaid > 0 && <p className="text-red-700">Restes impayés : <b>{fcfa(unpaid)}</b></p>}
         </div>
@@ -180,7 +180,7 @@ function PastBookings({ bookings }) {
             <li key={b.id} className="card flex items-center justify-between gap-3 p-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{b.units?.name} — {b.clients?.first_name} {b.clients?.last_name}</p>
-                <p className="text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
+                <p className="text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}{b.note ? ` · ${b.note}` : ''}</p>
               </div>
               <div className="shrink-0 space-y-0.5 text-right">
                 <p className="font-bold">{fcfa(b.total_amount)}</p>
