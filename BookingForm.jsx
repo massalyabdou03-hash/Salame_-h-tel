@@ -22,9 +22,20 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
   const [brokerId, setBrokerId] = useState(editing && booking.broker_id ? String(booking.broker_id) : '')
   const [commission, setCommission] = useState(editing && Number(booking.commission_amount) > 0 ? String(booking.commission_amount) : '')
   const [newBroker, setNewBroker] = useState(null) // null = fermé ; sinon le nom en cours de saisie
+  // Ancienne réservation : déjà terminée, saisie seulement pour compléter l'historique
+  const [legacy, setLegacy] = useState(false)
+  const [note, setNote] = useState(editing ? booking.note || '' : '')
+  const isLegacy = editing ? Boolean(booking.legacy) : legacy
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const setClient = (k) => (e) => setC({ ...c, [k]: e.target.value })
+
+  const toggleLegacy = (e) => {
+    const on = e.target.checked
+    setLegacy(on)
+    // Une ancienne réservation est terminée : on propose hier → aujourd'hui
+    setF({ ...f, check_in: on ? addDays(today(), -1) : today(), check_out: on ? today() : addDays(today(), 1) })
+  }
 
   const addBroker = async () => {
     const n = (newBroker || '').trim()
@@ -48,8 +59,13 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
     if (nights < 1) return setErr("La date de départ doit être après la date d'arrivée.")
     if (balance < 0) return setErr("L'avance ne peut pas dépasser le montant total.")
 
-    const comm = locked ? Number(booking.commission_amount) : Number(commission || 0)
-    if (!locked) {
+    if (isLegacy) {
+      if (f.check_out > today()) return setErr("Une ancienne réservation doit être terminée : la date de départ ne peut pas être après aujourd'hui.")
+      if (!(total > 0)) return setErr('Indiquez le montant total de cette ancienne réservation.')
+    }
+
+    const comm = isLegacy ? 0 : locked ? Number(booking.commission_amount) : Number(commission || 0)
+    if (!locked && !isLegacy) {
       if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
       if (comm > 0 && !brokerId) return setErr('Choisissez le courtier pour cette commission.')
       if (comm > total) return setErr('La commission ne peut pas dépasser le montant total.')
@@ -60,9 +76,14 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
       unit_id: Number(f.unit_id), check_in: f.check_in, check_out: f.check_out,
       payment_mode: f.payment_mode, advance: Number(f.advance || 0), total_amount: total,
     }
-    if (!locked) {
+    if (!locked && !isLegacy) {
       payload.broker_id = brokerId ? Number(brokerId) : null
       payload.commission_amount = brokerId ? comm : 0
+    }
+    if (isLegacy) payload.note = note.trim() || null
+    if (isLegacy && !editing) {
+      payload.legacy = true
+      payload.created_at = `${f.check_in}T12:00:00Z` // pas d'effet sur l'historique d'aujourd'hui
     }
 
     let error
@@ -71,7 +92,8 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
     } else {
       let cid = isNew ? created : clientId
       if (isNew && !cid) {
-        const r = await supabase.from('clients').insert(c).select().single()
+        const row = isLegacy ? { ...c, phone: c.phone.trim() || 'Non renseigné', id_number: c.id_number.trim() || 'Non renseigné' } : c
+        const r = await supabase.from('clients').insert(row).select().single()
         if (r.error) { setBusy(false); return setErr(r.error.message) }
         cid = r.data.id
         setCreated(cid)
@@ -95,14 +117,24 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
         )}
       </div>
 
+      {!editing && (
+        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+          <input type="checkbox" className="mt-1 h-4 w-4" checked={legacy} onChange={toggleLegacy} />
+          <span>
+            <b>Ancienne réservation</b> (déjà terminée, pour compléter l'historique)
+            <span className="block text-xs text-slate-500">Téléphone et pièce d'identité facultatifs. Aucune facture ni contrat n'est créé : la facture papier existe déjà.</span>
+          </span>
+        </label>
+      )}
+
       {editing ? (
         <p className="rounded-lg bg-slate-50 p-3 text-sm">Client : <b>{booking.clients.first_name} {booking.clients.last_name}</b> — {booking.clients.phone}</p>
       ) : isNew ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nom"><input className="input" required value={c.last_name} onChange={setClient('last_name')} /></Field>
           <Field label="Prénom"><input className="input" required value={c.first_name} onChange={setClient('first_name')} /></Field>
-          <Field label="Téléphone"><input className="input" type="tel" required value={c.phone} onChange={setClient('phone')} /></Field>
-          <Field label="N° pièce d'identité"><input className="input" required value={c.id_number} onChange={setClient('id_number')} /></Field>
+          <Field label="Téléphone"><input className="input" type="tel" required={!isLegacy} value={c.phone} onChange={setClient('phone')} /></Field>
+          <Field label="N° pièce d'identité"><input className="input" required={!isLegacy} value={c.id_number} onChange={setClient('id_number')} /></Field>
         </div>
       ) : (
         <Field label="Client">
@@ -117,7 +149,7 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
         <Field label="Logement">
           <select className="input" required value={f.unit_id} onChange={set('unit_id')}>
             <option value="">Sélectionner…</option>
-            {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance'}>{u.name} — {u.type}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
+            {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance' && !isLegacy}>{u.name} — {u.type}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
           </select>
         </Field>
         <Field label="Arrivée"><input className="input" type="date" required value={f.check_in} onChange={set('check_in')} /></Field>
@@ -134,6 +166,7 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
         <Field label="Avance versée"><input className="input" type="number" min="0" value={f.advance} onChange={set('advance')} /></Field>
       </div>
 
+      {!isLegacy && (
       <div className="space-y-3 rounded-xl border border-dashed border-slate-300 p-3">
         <p className="text-sm font-medium text-slate-700">Courtier <span className="font-normal text-slate-500">(facultatif)</span></p>
         {locked ? (
@@ -170,6 +203,16 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
           </>
         )}
       </div>
+      )}
+
+      {isLegacy && (
+        <div className="space-y-2">
+          <Field label="N° du carnet ou remarque (facultatif)">
+            <input className="input" placeholder="Ex. Carnet n° 71" value={note} onChange={(e) => setNote(e.target.value)} />
+          </Field>
+          <p className="text-xs text-slate-500">Indiquez dans « Avance versée » le montant déjà payé (en général le total). Un reste à payer serait compté dans les soldes à encaisser.</p>
+        </div>
+      )}
 
       <p className="rounded-lg bg-salam-50 p-3 text-sm">Total <b>{fcfa(total)}</b> · Solde à payer <b className="text-salam-700">{fcfa(balance)}</b></p>
       {err && <p className="text-sm text-red-600">{err}</p>}
