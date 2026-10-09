@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Search, ArrowLeft, FileText, FileSignature } from 'lucide-react'
+import { Search, ArrowLeft, FileText, FileSignature, Trash2 } from 'lucide-react'
+import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
 import { fcfa, fdate } from './utils'
 
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 const digits = (s) => String(s ?? '').replace(/\D/g, '')
 
-export default function Clients({ data, openDoc }) {
+export default function Clients({ data, openDoc, reload }) {
   const [q, setQ] = useState('')
   const [selId, setSelId] = useState(null)
 
@@ -34,6 +35,22 @@ export default function Clients({ data, openDoc }) {
       const inv = await getOrCreateInvoice(b)
       if (inv) openDoc({ type: 'invoice', booking: b, invoice: inv })
     }
+    // Un client qui a des réservations (même annulées) ne peut pas être supprimé : il faut d'abord supprimer ses réservations
+    const removeClient = async () => {
+      if (list.length > 0) {
+        alert(`Impossible : ${client.first_name} ${client.last_name} a encore ${list.length} réservation${list.length > 1 ? 's' : ''} (même annulée${list.length > 1 ? 's' : ''}). Supprimez-${list.length > 1 ? 'les' : 'la'} d'abord dans l'onglet Réservations.`)
+        return
+      }
+      if (!confirm(`Supprimer définitivement le client ${client.first_name} ${client.last_name} ?\n\nCette action ne peut pas être annulée.`)) return
+      const { error } = await supabase.from('clients').delete().eq('id', client.id)
+      if (error) {
+        alert(error.code === '23503' ? 'Impossible : ce client a encore des réservations.' : `Suppression impossible : ${error.message}`)
+        return
+      }
+      setSelId(null)
+      reload?.()
+    }
+
     return (
       <>
         <button className="btn btn-ghost w-fit" onClick={() => setSelId(null)}><ArrowLeft size={16} /> Tous les clients</button>
@@ -61,6 +78,10 @@ export default function Clients({ data, openDoc }) {
             </li>
           ))}
         </ul>
+        <div className="space-y-1 pt-2">
+          <button className="btn btn-danger w-fit" onClick={removeClient}><Trash2 size={16} /> Supprimer ce client</button>
+          {list.length > 0 && <p className="text-xs text-slate-500">Pour supprimer ce client, supprimez d'abord ses réservations.</p>}
+        </div>
       </>
     )
   }
