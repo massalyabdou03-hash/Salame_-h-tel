@@ -217,6 +217,12 @@ export default function Bookings({ data, reload, openDoc }) {
                     <p className="text-sm font-medium text-salam-700">
                       {b.units.name}
                     </p>
+
+                    {b.legacy && (
+                      <p className="mt-1 w-fit rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                        Ancienne réservation{b.note ? ` · ${b.note}` : ''}
+                      </p>
+                    )}
                   </div>
 
                   <span
@@ -328,6 +334,8 @@ export default function Bookings({ data, reload, openDoc }) {
                         </button>
                       )}
 
+                      {!b.legacy && (
+                      <>
                       <button
                         className="btn btn-secondary"
                         onClick={() =>
@@ -350,6 +358,8 @@ export default function Bookings({ data, reload, openDoc }) {
                         <FileSignature size={16} />
                         Contrat
                       </button>
+                      </>
+                      )}
 
                       <div className="ml-auto flex gap-2">
                         <button
