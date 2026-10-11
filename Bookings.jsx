@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Trash2 } from 'lucide-react'
+import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Trash2, LogIn, LogOut } from 'lucide-react'
 
 import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
 import BookingForm from './BookingForm'
 import { fcfa, fdate, stageOf, STAGE } from './utils'
 import { PageHeader, Badge, Empty, useNotify } from './ui'
+import { useStayActions, dakarDate, dakarTime } from './stay'
 
 const FILTERS = [
   ['all', 'Toutes'],
@@ -17,6 +18,7 @@ const FILTERS = [
 
 export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro }) {
   const { toast, confirm, inform } = useNotify()
+  const { arrive, leave, undo } = useStayActions(reload)
   const [form, setForm] = useState(startNew ? 'new' : null)
   const [newDate, setNewDate] = useState(startNew?.date || null)
   const [fromProforma, setFromProforma] = useState(startNew?.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
@@ -206,8 +208,33 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                 </div>
               </div>
 
+              {(b.checked_in_at || b.checked_out_at) && (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl bg-salam-50 px-4 py-2.5 text-sm">
+                  {b.checked_in_at && (
+                    <p className="flex flex-wrap items-center gap-2">
+                      <LogIn size={16} className="text-salam-700" />
+                      <span>Client arrivé le <b>{dakarDate(b.checked_in_at)}</b> à <b>{dakarTime(b.checked_in_at)}</b></span>
+                      {!b.checked_out_at && <button className="text-xs font-medium text-slate-500 underline" onClick={() => undo(b, 'checked_in_at')}>Effacer</button>}
+                    </p>
+                  )}
+                  {b.checked_out_at && (
+                    <p className="flex flex-wrap items-center gap-2">
+                      <LogOut size={16} className="text-amber-600" />
+                      <span>Client parti le <b>{dakarDate(b.checked_out_at)}</b> à <b>{dakarTime(b.checked_out_at)}</b></span>
+                      <button className="text-xs font-medium text-slate-500 underline" onClick={() => undo(b, 'checked_out_at')}>Effacer</button>
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="section-divider">
                 <div className="flex flex-wrap items-center gap-2">
+                  {stage === 'encours' && !b.legacy && !b.checked_in_at && (
+                    <button className="btn btn-success" onClick={() => arrive(b)}><LogIn size={16} /> Client arrivé</button>
+                  )}
+                  {stage !== 'annulee' && !b.legacy && b.checked_in_at && !b.checked_out_at && (
+                    <button className="btn btn-secondary" onClick={() => leave(b)}><LogOut size={16} /> Client parti</button>
+                  )}
                   {stage !== 'annulee' && (
                     <>
                       <button

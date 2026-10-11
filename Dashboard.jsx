@@ -1,21 +1,16 @@
 import { useState } from 'react'
-import { CalendarPlus, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
+import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, today, isActive, stageOf, STAGE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, useNotify } from './ui'
 import { MonthCalendar, DayPanel, UnitTimeline } from './Calendrier'
 import { longDate } from './calendar'
+import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
 const LABEL = { occupe: 'Occupé', disponible: 'Libre', maintenance: 'En maintenance' }
 
 // ---------- Historique ----------
-// Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
-const DAKAR = { timeZone: 'Africa/Dakar' }
-const dakarDay = (ts) => new Date(ts).toLocaleDateString('sv-SE', DAKAR)
-const dakarDate = (ts) => new Date(ts).toLocaleDateString('fr-FR', DAKAR)
-const dakarTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { ...DAKAR, hour: '2-digit', minute: '2-digit' })
-
 // Ce qui a été enregistré un jour donné : nouvelles réservations et dépenses, avec heure et date
 function DayHistory({ bookings, expenses }) {
   const [day, setDay] = useState(today())
@@ -23,6 +18,8 @@ function DayHistory({ bookings, expenses }) {
   const events = [
     ...bookings.filter((b) => dakarDay(b.created_at) === day).map((b) => ({ id: `b${b.id}`, at: b.created_at, b })),
     ...expenses.filter((e) => dakarDay(e.created_at) === day).map((e) => ({ id: `e${e.id}`, at: e.created_at, e })),
+    ...bookings.filter((b) => b.checked_in_at && dakarDay(b.checked_in_at) === day).map((b) => ({ id: `i${b.id}`, at: b.checked_in_at, s: b, out: false })),
+    ...bookings.filter((b) => b.checked_out_at && dakarDay(b.checked_out_at) === day).map((b) => ({ id: `o${b.id}`, at: b.checked_out_at, s: b, out: true })),
   ].sort((x, y) => new Date(y.at) - new Date(x.at))
 
   const fresh = events.filter((x) => x.b && x.b.status !== 'annulee')
@@ -51,7 +48,15 @@ function DayHistory({ bookings, expenses }) {
               <p className="font-semibold text-slate-700">{dakarTime(x.at)}</p>
               <p>{dakarDate(x.at)}</p>
             </div>
-            {x.b ? (
+            {x.s ? (
+              <div className="min-w-0 flex-1">
+                <p className="flex items-start gap-1 font-semibold">
+                  {x.out ? <LogOut size={14} className="mt-0.5 shrink-0 text-amber-600" /> : <LogIn size={14} className="mt-0.5 shrink-0 text-emerald-600" />}
+                  <span className="min-w-0 break-words">{x.out ? 'Départ' : 'Arrivée'} — {x.s.units?.name} · {x.s.clients?.first_name} {x.s.clients?.last_name}</span>
+                </p>
+                <p className="text-xs text-slate-500">Séjour du {fdate(x.s.check_in)} au {fdate(x.s.check_out)}</p>
+              </div>
+            ) : x.b ? (
               <>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-start gap-1 font-semibold"><CalendarPlus size={14} className="mt-0.5 shrink-0 text-salam-600" />
@@ -154,6 +159,7 @@ function PastBookings({ bookings }) {
 export default function Dashboard({ data, reload, goNew }) {
   const { units, bookings, expenses } = data
   const { toast } = useNotify()
+  const { arrive, leave } = useStayActions(reload)
   const t = today()
   const month = t.slice(0, 7)
   const live = bookings.filter((b) => b.status !== 'annulee')
@@ -209,7 +215,7 @@ export default function Dashboard({ data, reload, goNew }) {
         {view === 'mois'
           ? <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
           : <UnitTimeline units={units} bookings={bookings} selected={day} onSelect={setDay} />}
-        <DayPanel bookings={bookings} day={day} onNew={goNew} />
+        <DayPanel bookings={bookings} day={day} onNew={goNew} onArrive={arrive} onLeave={leave} />
       </Section>
 
       <Section title={`Logements (${occupied} occupé${occupied > 1 ? 's' : ''} sur ${units.length})`}>

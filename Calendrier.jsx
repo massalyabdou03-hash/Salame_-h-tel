@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, LogIn, LogOut, BedDouble, Plus } from 'lucid
 import { fcfa, today, addDays, isActive } from './utils'
 import { WEEKDAYS, monthGrid, monthOf, shiftMonth, monthTitle, dayEvents, weekdayName, longDate, shortDate } from './calendar'
 import { Badge } from './ui'
+import { dakarTime } from './stay'
 
 const who = (b) => `${b.clients?.last_name ?? ''} ${b.clients?.first_name ?? ''}`.trim()
 
@@ -102,7 +103,7 @@ export function MonthCalendar({ bookings, selected, onSelect }) {
 }
 
 // ---------- Détail du jour choisi ----------
-function DayList({ title, Icon, rows, tone }) {
+function DayList({ title, Icon, rows, tone, actions }) {
   return (
     <div>
       <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -121,6 +122,14 @@ function DayList({ title, Icon, rows, tone }) {
                   {shortDate(b.check_in)} → {shortDate(b.check_out)}
                   {rest > 0 ? <span className="font-medium text-red-700"> · reste à payer {fcfa(rest)}</span> : <span className="text-emerald-700"> · soldé</span>}
                 </p>
+                {(b.checked_in_at || b.checked_out_at) && (
+                  <p className="mt-0.5 text-xs font-medium text-salam-700">
+                    {b.checked_in_at && <>Arrivé à {dakarTime(b.checked_in_at)}</>}
+                    {b.checked_in_at && b.checked_out_at && ' · '}
+                    {b.checked_out_at && <>Parti à {dakarTime(b.checked_out_at)}</>}
+                  </p>
+                )}
+                {actions && <div className="mt-1.5 flex flex-wrap gap-2">{actions(b)}</div>}
               </li>
             )
           })}
@@ -130,9 +139,17 @@ function DayList({ title, Icon, rows, tone }) {
   )
 }
 
-export function DayPanel({ bookings, day, onNew }) {
+export function DayPanel({ bookings, day, onNew, onArrive, onLeave }) {
   const ev = dayEvents(bookings, day)
   const isPast = day < today()
+  const isToday = day === today()
+  // Les heures d'arrivée et de départ ne s'enregistrent que le jour même
+  const arriveBtn = (b) => isToday && onArrive && !b.legacy && b.check_in === day && !b.checked_in_at && (
+    <button type="button" className="btn btn-success" onClick={() => onArrive(b)}><LogIn size={14} /> Client arrivé</button>
+  )
+  const leaveBtn = (b) => isToday && onLeave && !b.legacy && b.checked_in_at && !b.checked_out_at && (
+    <button type="button" className="btn btn-secondary" onClick={() => onLeave(b)}><LogOut size={14} /> Client parti</button>
+  )
   return (
     <div className="card space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -149,9 +166,9 @@ export function DayPanel({ bookings, day, onNew }) {
         )}
       </div>
       <div className="grid gap-5 md:grid-cols-3">
-        <DayList title="Arrivées" Icon={LogIn} rows={ev.arrivals} tone="text-emerald-600" />
-        <DayList title="Départs" Icon={LogOut} rows={ev.departures} tone="text-amber-600" />
-        <DayList title="Déjà sur place" Icon={BedDouble} rows={ev.staying} tone="text-salam-600" />
+        <DayList title="Arrivées" Icon={LogIn} rows={ev.arrivals} tone="text-emerald-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
+        <DayList title="Départs" Icon={LogOut} rows={ev.departures} tone="text-amber-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
+        <DayList title="Déjà sur place" Icon={BedDouble} rows={ev.staying} tone="text-salam-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
       </div>
     </div>
   )
