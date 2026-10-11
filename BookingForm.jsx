@@ -1,20 +1,20 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
 import { PAY_MODES, fcfa, today, addDays, nightsBetween } from './utils'
+import { Field, useNotify } from './ui'
+import { longDate } from './calendar'
 
-const Field = ({ label, children }) => (
-  <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700">{label}</span>{children}</label>
-)
-
-export default function BookingForm({ booking, units, clients, brokers = [], reloadBrokers, onDone, onCancel }) {
+export default function BookingForm({ booking, initialDate, units, clients, brokers = [], reloadBrokers, onDone, onCancel }) {
+  const { toast } = useNotify()
   const editing = Boolean(booking)
+  const startDay = !editing && initialDate ? initialDate : today()
   const [isNew, setIsNew] = useState(!editing && clients.length === 0)
   const [clientId, setClientId] = useState('')
   const [created, setCreated] = useState(null) // évite un doublon client si la réservation échoue
   const [c, setC] = useState({ last_name: '', first_name: '', phone: '', id_number: '' })
   const [f, setF] = useState(editing
     ? { unit_id: String(booking.unit_id), check_in: booking.check_in, check_out: booking.check_out, payment_mode: booking.payment_mode, advance: String(booking.advance), total: String(booking.total_amount) }
-    : { unit_id: '', check_in: today(), check_out: addDays(today(), 1), payment_mode: PAY_MODES[0], advance: '0', total: '' })
+    : { unit_id: '', check_in: startDay, check_out: addDays(startDay, 1), payment_mode: PAY_MODES[0], advance: '0', total: '' })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   // Courtier (facultatif). Si la commission est déjà versée, ces champs sont verrouillés.
@@ -34,17 +34,18 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
     const on = e.target.checked
     setLegacy(on)
     // Une ancienne réservation est terminée : on propose hier → aujourd'hui
-    setF({ ...f, check_in: on ? addDays(today(), -1) : today(), check_out: on ? today() : addDays(today(), 1) })
+    setF({ ...f, check_in: on ? addDays(today(), -1) : startDay, check_out: on ? today() : addDays(startDay, 1) })
   }
 
   const addBroker = async () => {
     const n = (newBroker || '').trim()
-    if (!n) return setErr('Saisissez le nom du courtier.')
+    if (!n) return setErr('Écrivez le nom du courtier.')
     setErr('')
     const r = await supabase.from('brokers').insert({ name: n }).select().single()
     if (r.error) return setErr(r.error.code === '23505' ? 'Ce courtier existe déjà dans la liste.' : r.error.message)
     setBrokerId(String(r.data.id))
     setNewBroker(null)
+    toast(`Le courtier « ${n} » a été ajouté.`)
     reloadBrokers?.()
   }
 
@@ -107,9 +108,12 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
   }
 
   return (
-    <form onSubmit={submit} className="card space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold">{editing ? 'Modifier la réservation' : 'Nouvelle réservation'}</h2>
+    <form onSubmit={submit} className="card space-y-5 border-salam-600/40 !p-6 ring-1 ring-salam-600/10">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold">{editing ? 'Modifier la réservation' : 'Nouvelle réservation'}</h2>
+          {!editing && initialDate && <p className="text-sm text-slate-500">Arrivée prévue le {longDate(initialDate)}</p>}
+        </div>
         {!editing && clients.length > 0 && (
           <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setIsNew(!isNew)}>
             {isNew ? 'Choisir un client existant' : 'Nouveau client'}
@@ -139,7 +143,7 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
       ) : (
         <Field label="Client">
           <select className="input" required value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">Sélectionner…</option>
+            <option value="">Choisir…</option>
             {clients.map((x) => <option key={x.id} value={x.id}>{x.last_name} {x.first_name} — {x.phone}</option>)}
           </select>
         </Field>
@@ -148,12 +152,12 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Logement">
           <select className="input" required value={f.unit_id} onChange={set('unit_id')}>
-            <option value="">Sélectionner…</option>
+            <option value="">Choisir…</option>
             {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance' && !isLegacy}>{u.name} — {u.type}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
           </select>
         </Field>
-        <Field label="Arrivée"><input className="input" type="date" required value={f.check_in} onChange={set('check_in')} /></Field>
-        <Field label="Départ"><input className="input" type="date" required value={f.check_out} onChange={set('check_out')} /></Field>
+        <Field label="Date d'arrivée"><input className="input" type="date" required value={f.check_in} onChange={set('check_in')} /></Field>
+        <Field label="Date de départ"><input className="input" type="date" required value={f.check_out} onChange={set('check_out')} /></Field>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -214,11 +218,11 @@ export default function BookingForm({ booking, units, clients, brokers = [], rel
         </div>
       )}
 
-      <p className="rounded-lg bg-salam-50 p-3 text-sm">Total <b>{fcfa(total)}</b> · Solde à payer <b className="text-salam-700">{fcfa(balance)}</b></p>
-      {err && <p className="text-sm text-red-600">{err}</p>}
-      <div className="flex gap-2">
-        <button className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Enregistrer la réservation'}</button>
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>Annuler</button>
+      <p className="rounded-xl bg-salam-50 p-3 text-sm">Total <b>{fcfa(total)}</b> · Reste à payer <b className="text-salam-700">{fcfa(balance)}</b></p>
+      {err && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Enregistrer la réservation'}</button>
+        <button type="button" className="btn btn-secondary btn-lg" onClick={onCancel}>Annuler</button>
       </div>
     </form>
   )

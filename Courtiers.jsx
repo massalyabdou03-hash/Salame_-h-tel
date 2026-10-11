@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Handshake, Check, Undo2 } from 'lucide-react'
+import { Handshake, Check, Undo2, Wallet, Banknote } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate } from './utils'
+import { Field, PageHeader, Section, Stat, Empty, useNotify } from './ui'
 
 // Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
 const DAKAR = { timeZone: 'Africa/Dakar' }
@@ -13,6 +14,7 @@ const sum = (rows) => rows.reduce((s, b) => s + Number(b.commission_amount), 0)
 const pct = (b) => (Number(b.total_amount) > 0 ? Math.round((Number(b.commission_amount) / Number(b.total_amount)) * 100) : 0)
 
 export default function Courtiers({ data, reload }) {
+  const { toast, confirm } = useNotify()
   const brokers = data.brokers ?? []
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -46,68 +48,63 @@ export default function Courtiers({ data, reload }) {
     e.preventDefault()
     setErr('')
     const n = name.trim()
-    if (!n) return setErr('Saisissez le nom du courtier.')
+    if (!n) return setErr('Écrivez le nom du courtier.')
     setBusy(true)
     const { error } = await supabase.from('brokers').insert({ name: n, phone: phone.trim() || null })
     setBusy(false)
-    if (error) return setErr(error.code === '23505' ? 'Ce courtier existe déjà.' : `Échec de l'enregistrement : ${error.message}`)
+    if (error) return setErr(error.code === '23505' ? 'Ce courtier existe déjà.' : `Le courtier n'a pas pu être enregistré : ${error.message}`)
+    toast(`Le courtier « ${n} » a été ajouté.`)
     setName(''); setPhone('')
     reload()
   }
 
   // L'heure du versement est fixée par le serveur (pas par l'ordinateur)
   const setPaid = async (b, paidNow) => {
-    const text = paidNow
-      ? `Confirmer le versement de ${fcfa(b.commission_amount)} à ${nameOf[b.broker_id]} ?`
-      : 'Annuler ce versement ?'
-    if (!confirm(text)) return
+    const who = nameOf[b.broker_id]
+    const ok = await confirm(
+      paidNow
+        ? { title: 'Marquer comme versée ?', message: `Confirmez-vous avoir versé ${fcfa(b.commission_amount)} à ${who} ?\n\nLa date et l'heure du versement seront enregistrées.`, confirmLabel: "Oui, c'est versé" }
+        : { title: 'Annuler ce versement ?', message: `La commission de ${fcfa(b.commission_amount)} pour ${who} repassera dans « Reste à verser ».`, confirmLabel: 'Oui, annuler le versement', cancelLabel: 'Non, le garder', danger: true }
+    )
+    if (!ok) return
     setBusyId(b.id)
     const { error } = await supabase.from('bookings').update({ commission_paid_at: paidNow ? new Date().toISOString() : null }).eq('id', b.id)
     setBusyId(null)
-    if (error) return alert(error.message)
+    if (error) return toast(`Le changement n'a pas pu être enregistré : ${error.message}`, 'error')
+    toast(paidNow ? `Versement de ${fcfa(b.commission_amount)} à ${who} enregistré.` : 'Le versement a été annulé.')
     reload()
   }
 
-  const kpis = [
-    ['Commissions gagnées', earned, 'text-slate-900'],
-    ['Déjà versé', paid, 'text-salam-700'],
-    ['Reste à verser', rest, rest > 0 ? 'text-amber-700' : 'text-salam-700'],
-  ]
-
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {kpis.map(([label, value, color], i) => (
-          <div key={label} className={`card ${i === 2 ? 'col-span-2 md:col-span-1' : ''}`}>
-            <Handshake size={18} className={color} />
-            <p className="mt-2 text-xs text-slate-500">{label}</p>
-            <p className={`text-lg font-bold ${color}`}>{fcfa(value)}</p>
-          </div>
-        ))}
+    <div className="space-y-8">
+      <PageHeader title="Courtiers" subtitle="Les commissions gagnées et versées aux courtiers" />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Commissions gagnées" value={fcfa(earned)} Icon={Handshake} tone="slate" />
+        <Stat label="Déjà versé" value={fcfa(paid)} Icon={Wallet} tone="green" />
+        <Stat label="Reste à verser" value={fcfa(rest)} Icon={Banknote} tone={rest > 0 ? 'amber' : 'green'} />
       </div>
 
-      <form onSubmit={add} className="card space-y-3">
-        <h2 className="font-bold">Ajouter un courtier</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700">Nom</span>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
-          <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700">Téléphone (facultatif)</span>
-            <input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
+      <form onSubmit={add} className="card space-y-4">
+        <h2 className="text-lg font-bold">Ajouter un courtier</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nom"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
+          <Field label="Téléphone (facultatif)"><input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
         </div>
-        {err && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{err}</p>}
-        <button className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Ajouter le courtier'}</button>
+        {err && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</p>}
+        <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : 'Ajouter le courtier'}</button>
       </form>
 
-      <h2 className="pt-2 font-bold">Courtiers</h2>
-      <ul className="space-y-3">
+      <Section title="Liste des courtiers">
+      <ul className="grid gap-4 xl:grid-cols-2">
         {brokers.length === 0 && (
-          <li className="card text-sm text-slate-500">Aucun courtier pour l'instant. Ajoutez-en un ci-dessus, ou directement dans une réservation.</li>
+          <li className="xl:col-span-2"><Empty>Aucun courtier pour l'instant. Ajoutez-en un ci-dessus, ou directement dans une réservation.</Empty></li>
         )}
         {brokers.map((br) => {
           const st = statsOf(br.id)
           const rows = withComm.filter((b) => b.broker_id === br.id)
           return (
-            <li key={br.id} className="card space-y-3">
+            <li key={br.id} className="card space-y-3 self-start">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-bold">{br.name}</p>
@@ -131,7 +128,7 @@ export default function Courtiers({ data, reload }) {
                   {rows.map((b) => {
                     const cancelled = b.status === 'annulee'
                     return (
-                      <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                      <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                         <div className="min-w-0">
                           <p className="truncate font-semibold">{b.units?.name} · {b.clients?.first_name} {b.clients?.last_name}</p>
                           <p className="text-xs text-slate-500">
@@ -160,17 +157,17 @@ export default function Courtiers({ data, reload }) {
           )
         })}
       </ul>
+      </Section>
 
-      <h2 className="pt-2 font-bold">Historique des versements</h2>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700">Mois</span>
-          <input className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
-        <p className="ml-auto text-sm">Total versé : <b className="text-lg text-red-700">{fcfa(sum(history))}</b></p>
+      <Section title="Historique des versements" hint="Tout l'argent versé aux courtiers, du plus récent au plus ancien.">
+      <div className="flex flex-wrap items-end gap-4">
+        <Field label="Mois"><input className="input" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></Field>
+        <p className="ml-auto text-sm">Total versé : <b className="text-xl text-red-700">{fcfa(sum(history))}</b></p>
       </div>
       <ul className="space-y-2">
-        {history.length === 0 && <li className="card text-sm text-slate-500">Aucun versement enregistré.</li>}
+        {history.length === 0 && <li><Empty>Aucun versement enregistré.</Empty></li>}
         {history.map((b) => (
-          <li key={b.id} className="card flex items-start gap-3 p-3 text-sm">
+          <li key={b.id} className="card flex items-start gap-3 !p-3 text-sm">
             <div className="w-16 shrink-0 text-xs text-slate-500">
               <p className="font-semibold text-slate-700">{dTime(b.commission_paid_at)}</p>
               <p>{dDate(b.commission_paid_at)}</p>
@@ -186,6 +183,7 @@ export default function Courtiers({ data, reload }) {
           </li>
         ))}
       </ul>
-    </>
+      </Section>
+    </div>
   )
 }

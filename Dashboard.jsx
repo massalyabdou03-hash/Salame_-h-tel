@@ -1,61 +1,13 @@
 import { useState } from 'react'
-import { Wallet, TrendingDown, PiggyBank, BedDouble, Banknote, Wrench, LogIn, LogOut, CalendarPlus, Handshake } from 'lucide-react'
+import { CalendarPlus, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, addDays, isActive, stageOf, STAGE } from './utils'
+import { fcfa, fdate, today, isActive, stageOf, STAGE } from './utils'
+import { Field, PageHeader, Section, Stat, Badge, Empty, useNotify } from './ui'
+import { MonthCalendar, DayPanel, UnitTimeline } from './Calendrier'
+import { longDate } from './calendar'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
-const LABEL = { occupe: 'Occupé', disponible: 'Disponible', maintenance: 'En maintenance' }
-
-function TodayList({ title, Icon, rows }) {
-  return (
-    <div className="card">
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold"><Icon size={16} className="text-salam-600" />{title} ({rows.length})</h3>
-      {rows.length === 0 && <p className="text-sm text-slate-500">Aucun.</p>}
-      {rows.map((b) => {
-        const rest = Number(b.total_amount) - Number(b.advance)
-        return (
-          <p key={b.id} className="text-sm">
-            <b>{b.units.name}</b> — {b.clients.first_name} {b.clients.last_name}
-            {rest > 0 && <span className="text-red-700"> · reste {fcfa(rest)}</span>}
-          </p>
-        )
-      })}
-    </div>
-  )
-}
-
-function Planning({ units, bookings }) {
-  const days = Array.from({ length: 14 }, (_, i) => addDays(today(), i))
-  return (
-    <div className="card overflow-x-auto p-0">
-      <table className="w-full text-xs">
-        <thead>
-          <tr>
-            <th className="sticky left-0 bg-white p-2 text-left">Logement</th>
-            {days.map((d) => <th key={d} className="p-1 font-medium text-slate-500">{d.slice(8)}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {units.map((u) => (
-            <tr key={u.id} className="border-t">
-              <td className="sticky left-0 whitespace-nowrap bg-white p-2 font-medium">{u.name}</td>
-              {days.map((d) => {
-                const b = bookings.find((x) => x.unit_id === u.id && isActive(x, d))
-                return (
-                  <td
-                    key={d}
-                    title={b ? `${b.clients?.first_name} ${b.clients?.last_name}` : ''}
-                    className={`h-7 min-w-6 border-l ${b ? 'bg-salam-600' : u.status === 'maintenance' ? 'bg-amber-200' : ''}`}
-                  />
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
+const LABEL = { occupe: 'Occupé', disponible: 'Libre', maintenance: 'En maintenance' }
 
 // ---------- Historique ----------
 // Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
@@ -80,19 +32,19 @@ function DayHistory({ bookings, expenses }) {
   return (
     <div className="card space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
-        <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Jour</span>
+        <Field label="Choisir un jour" className="min-w-0">
           <input className="input min-w-0" type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value || today())} />
-        </label>
-        <div className="text-sm sm:text-right">
-          <p>Réservations : <b>{fresh.length}</b> · <b>{fcfa(booked)}</b></p>
+        </Field>
+        <div className="space-y-0.5 text-sm sm:text-right">
+          <p>Nouvelles réservations : <b>{fresh.length}</b></p>
+          <p>Montant : <b>{fcfa(booked)}</b></p>
           <p>Dépenses du jour : <b className="text-red-700">{fcfa(spent)}</b></p>
         </div>
       </div>
 
-      {events.length === 0 && <p className="text-sm text-slate-500">Aucune activité enregistrée ce jour-là.</p>}
+      {events.length === 0 && <p className="text-sm text-slate-500">Rien n'a été enregistré ce jour-là.</p>}
 
-      <ul className="divide-y">
+      <ul className="max-h-[34rem] divide-y overflow-y-auto">
         {events.map((x) => (
           <li key={x.id} className="flex items-start gap-3 py-2 text-sm">
             <div className="w-16 shrink-0 text-xs text-slate-500">
@@ -152,32 +104,30 @@ function PastBookings({ bookings }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 items-end gap-3">
-        <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Afficher</span>
+        <Field label="Afficher" className="min-w-0">
           <select className="input min-w-0" value={kind} onChange={(e) => { setKind(e.target.value); setLimit(15) }}>
             <option value="terminee">Terminées</option>
             <option value="annulee">Annulées</option>
             <option value="all">Terminées et annulées</option>
           </select>
-        </label>
-        <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Mois d'arrivée</span>
+        </Field>
+        <Field label="Mois d'arrivée" className="min-w-0">
           <input className="input min-w-0" type="month" value={month} onChange={(e) => { setMonth(e.target.value); setLimit(15) }} />
-        </label>
+        </Field>
         <div className="col-span-2 text-sm">
           <p>{rows.length} réservation{rows.length > 1 ? 's' : ''} · Total <b>{fcfa(total)}</b></p>
           {unpaid > 0 && <p className="text-red-700">Restes impayés : <b>{fcfa(unpaid)}</b></p>}
         </div>
       </div>
 
-      {rows.length === 0 && <p className="card text-sm text-slate-500">Aucune réservation pour ce filtre.</p>}
+      {rows.length === 0 && <Empty>Aucune réservation pour ce choix.</Empty>}
 
       <ul className="space-y-2">
         {rows.slice(0, limit).map((b) => {
           const st = stageOf(b, t)
           const rest = Number(b.total_amount) - Number(b.advance)
           return (
-            <li key={b.id} className="card flex items-center justify-between gap-3 p-3">
+            <li key={b.id} className="card flex items-center justify-between gap-3 !p-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{b.units?.name} — {b.clients?.first_name} {b.clients?.last_name}</p>
                 <p className="text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}{b.note ? ` · ${b.note}` : ''}</p>
@@ -185,7 +135,7 @@ function PastBookings({ bookings }) {
               <div className="shrink-0 space-y-0.5 text-right">
                 <p className="font-bold">{fcfa(b.total_amount)}</p>
                 {st !== 'annulee' && rest > 0 && <p className="text-xs text-red-700">reste {fcfa(rest)}</p>}
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STAGE[st][1]}`}>{STAGE[st][0]}</span>
+                <Badge className={STAGE[st][1]}>{STAGE[st][0]}</Badge>
               </div>
             </li>
           )
@@ -201,88 +151,106 @@ function PastBookings({ bookings }) {
   )
 }
 
-export default function Dashboard({ data, reload }) {
+export default function Dashboard({ data, reload, goNew }) {
   const { units, bookings, expenses } = data
+  const { toast } = useNotify()
   const t = today()
   const month = t.slice(0, 7)
   const live = bookings.filter((b) => b.status !== 'annulee')
+  const [day, setDay] = useState(t)
+  const [view, setView] = useState('mois')
 
-  // Recettes = montant total des réservations non annulées dont l'arrivée tombe dans le mois
+  // Total des réservations = montant total des réservations non annulées dont l'arrivée tombe dans le mois
   const revenue = live.filter((b) => b.check_in.startsWith(month)).reduce((s, b) => s + Number(b.total_amount), 0)
   const spent = expenses.filter((e) => e.spent_on.startsWith(month)).reduce((s, e) => s + Number(e.amount), 0)
-  // Commissions des courtiers : même règle de mois que les recettes (mois d'arrivée), réservations annulées exclues
+  // Commissions des courtiers : même règle de mois (mois d'arrivée), réservations annulées exclues
   const commissions = live.filter((b) => b.check_in.startsWith(month)).reduce((s, b) => s + Number(b.commission_amount || 0), 0)
   const due = live.reduce((s, b) => s + (Number(b.total_amount) - Number(b.advance)), 0)
+  const net = revenue - spent - commissions
 
   const current = (u) => bookings.find((b) => b.unit_id === u.id && isActive(b, t))
   const statusOf = (u) => (u.status === 'maintenance' ? 'maintenance' : current(u) ? 'occupe' : 'disponible')
   const occupied = units.filter((u) => statusOf(u) === 'occupe').length
-  const rate = units.length ? Math.round((occupied / units.length) * 100) : 0
 
   const toggleMaintenance = async (u) => {
-    await supabase.from('units').update({ status: u.status === 'maintenance' ? 'disponible' : 'maintenance' }).eq('id', u.id)
+    const next = u.status === 'maintenance' ? 'disponible' : 'maintenance'
+    const { error } = await supabase.from('units').update({ status: next }).eq('id', u.id)
+    if (error) return toast(`Le changement n'a pas pu être enregistré : ${error.message}`, 'error')
+    toast(next === 'maintenance' ? `${u.name} est maintenant en maintenance.` : `${u.name} est de nouveau disponible.`)
     reload()
   }
 
-  const net = revenue - spent - commissions
-  const kpis = [
-    ['Recettes du mois', fcfa(revenue), Wallet, 'text-salam-700'],
-    ['Dépenses du mois', fcfa(spent), TrendingDown, 'text-red-700'],
-    ['Commissions du mois', fcfa(commissions), Handshake, 'text-amber-700'],
-    ['Bénéfice net', fcfa(net), PiggyBank, net >= 0 ? 'text-salam-700' : 'text-red-700'],
-    ["Taux d'occupation", `${rate} %`, BedDouble, 'text-gold'],
-    ['Soldes à encaisser', fcfa(due), Banknote, due > 0 ? 'text-red-700' : 'text-salam-700'],
-  ]
-
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {kpis.map(([label, value, Icon, color]) => (
-          <div key={label} className="card">
-            <Icon size={18} className={color} />
-            <p className="mt-2 text-xs text-slate-500">{label}</p>
-            <p className={`text-lg font-bold ${color}`}>{value}</p>
+    <div className="space-y-8">
+      <PageHeader title="Accueil" subtitle={`Aujourd'hui : ${longDate(t)}`}>
+        <button className="btn btn-primary btn-lg" onClick={() => goNew()}><Plus size={18} /> Nouvelle réservation</button>
+      </PageHeader>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Stat label="Total des réservations du mois" value={fcfa(revenue)} Icon={Wallet} tone="green" />
+        <Stat label="Dépenses du mois" value={fcfa(spent)} Icon={TrendingDown} tone="red" />
+        <Stat label="Commissions des courtiers" value={fcfa(commissions)} hint="Pour les réservations du mois" Icon={Handshake} tone="amber" />
+        <Stat label="Gain du mois" value={fcfa(net)} hint="Réservations − dépenses − commissions" Icon={PiggyBank} tone={net >= 0 ? 'green' : 'red'} />
+        <Stat label="Logements occupés aujourd'hui" value={`${occupied} sur ${units.length}`} Icon={BedDouble} tone="gold" />
+        <Stat label="Reste à encaisser" value={fcfa(due)} hint="Sommes pas encore payées par les clients" Icon={Banknote} tone={due > 0 ? 'red' : 'green'} />
+      </div>
+
+      <Section
+        title="Calendrier des réservations"
+        hint="Les arrivées sont en vert, les départs en orange."
+        action={
+          <div className="flex gap-2">
+            {[['mois', 'Calendrier du mois'], ['logement', 'Occupation par logement']].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
+            ))}
           </div>
-        ))}
-      </div>
+        }
+      >
+        {view === 'mois'
+          ? <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
+          : <UnitTimeline units={units} bookings={bookings} selected={day} onSelect={setDay} />}
+        <DayPanel bookings={bookings} day={day} onNew={goNew} />
+      </Section>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <TodayList title="Arrivées aujourd'hui" Icon={LogIn} rows={live.filter((b) => b.check_in === t)} />
-        <TodayList title="Départs aujourd'hui" Icon={LogOut} rows={live.filter((b) => b.check_out === t)} />
-      </div>
-
-      <h2 className="pt-2 font-bold">Logements ({occupied}/{units.length} occupés)</h2>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-        {units.map((u) => {
-          const s = statusOf(u)
-          const b = current(u)
-          return (
-            <div key={u.id} className="card flex flex-col gap-1 p-3">
-              <div className="flex items-start justify-between">
-                <p className="font-semibold">{u.name}</p>
-                <button
-                  onClick={() => toggleMaintenance(u)}
-                  disabled={s === 'occupe'}
-                  aria-label="Basculer maintenance"
-                  className="text-slate-400 hover:text-amber-600 disabled:opacity-30"
-                ><Wrench size={16} /></button>
+      <Section title={`Logements (${occupied} occupé${occupied > 1 ? 's' : ''} sur ${units.length})`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {units.map((u) => {
+            const s = statusOf(u)
+            const b = current(u)
+            return (
+              <div key={u.id} className="card flex flex-col gap-1.5 !p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-bold">{u.name}</p>
+                  <button
+                    onClick={() => toggleMaintenance(u)}
+                    disabled={s === 'occupe'}
+                    aria-label={u.status === 'maintenance' ? `Remettre ${u.name} en service` : `Mettre ${u.name} en maintenance`}
+                    title={u.status === 'maintenance' ? 'Remettre en service' : 'Mettre en maintenance'}
+                    className="text-slate-400 hover:text-amber-600 disabled:opacity-30"
+                  ><Wrench size={16} /></button>
+                </div>
+                <p className="text-xs text-slate-500">{u.type}</p>
+                <Badge className={BADGE[s]}>{LABEL[s]}</Badge>
+                {b && (
+                  <div className="text-xs text-slate-600">
+                    <p className="truncate font-medium">{b.clients?.first_name} {b.clients?.last_name}</p>
+                    <p>jusqu'au {fdate(b.check_out)}</p>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-slate-500">{u.type}</p>
-              <span className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${BADGE[s]}`}>{LABEL[s]}</span>
-              {b && <p className="truncate text-xs text-slate-600">{b.clients?.last_name}</p>}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
+      </Section>
+
+      <div className="grid gap-8 xl:grid-cols-2">
+        <Section title="Historique de la journée" hint="Ce qui a été enregistré ce jour-là, avec l'heure.">
+          <DayHistory bookings={bookings} expenses={expenses} />
+        </Section>
+        <Section title="Réservations passées" hint="Les séjours terminés ou annulés.">
+          <PastBookings bookings={bookings} />
+        </Section>
       </div>
-
-      <h2 className="pt-2 font-bold">Planning des 14 prochains jours</h2>
-      <Planning units={units} bookings={bookings} />
-
-      <h2 className="pt-2 font-bold">Historique de la journée</h2>
-      <DayHistory bookings={bookings} expenses={expenses} />
-
-      <h2 className="pt-2 font-bold">Réservations passées</h2>
-      <PastBookings bookings={bookings} />
-    </>
+    </div>
   )
 }
