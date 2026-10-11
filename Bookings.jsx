@@ -15,16 +15,18 @@ const FILTERS = [
   ['annulee', 'Annulées'],
 ]
 
-export default function Bookings({ data, reload, openDoc, startNew, onStarted }) {
+export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro }) {
   const { toast, confirm, inform } = useNotify()
   const [form, setForm] = useState(startNew ? 'new' : null)
   const [newDate, setNewDate] = useState(startNew?.date || null)
+  const [fromProforma, setFromProforma] = useState(startNew?.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
   const [filter, setFilter] = useState('all')
 
   // Demande venue de l'accueil : « Nouvelle réservation » (éventuellement avec une date choisie)
   useEffect(() => {
     if (!startNew) return
     setNewDate(startNew.date || null)
+    setFromProforma(startNew.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
     setForm('new')
     onStarted?.()
   }, [startNew]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -109,8 +111,9 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted })
   return (
     <div className="space-y-6">
       <PageHeader title="Réservations" subtitle="Toutes les réservations de l'hôtel">
+        {!form && goPro && <button className="btn btn-secondary btn-lg" onClick={goPro}><FileText size={18} /> Factures proforma</button>}
         {!form && (
-          <button className="btn btn-primary btn-lg" onClick={() => { setNewDate(null); setForm('new') }}>
+          <button className="btn btn-primary btn-lg" onClick={() => { setNewDate(null); setFromProforma(null); setForm('new') }}>
             <Plus size={18} /> Nouvelle réservation
           </button>
         )}
@@ -118,7 +121,8 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted })
 
       {form && (
         <BookingForm
-          key={form === 'new' ? `new-${newDate}` : form.id}
+          key={form === 'new' ? `new-${newDate}-${fromProforma?.id || ''}` : form.id}
+          prefill={form === 'new' ? fromProforma?.prefill : undefined}
           booking={form === 'new' ? undefined : form}
           initialDate={form === 'new' ? newDate : undefined}
           units={data.units}
@@ -126,8 +130,16 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted })
           brokers={data.brokers}
           reloadBrokers={reload}
           onCancel={() => setForm(null)}
-          onDone={() => {
-            toast(form === 'new' ? 'La réservation a été enregistrée.' : 'Les modifications ont été enregistrées.')
+          onDone={async (bookingId) => {
+            // Réservation créée depuis un proforma : on le marque « transformé » et on garde le lien
+            if (form === 'new' && fromProforma?.id && bookingId) {
+              const { error } = await supabase.from('proformas').update({ status: 'acceptee', booking_id: bookingId }).eq('id', fromProforma.id)
+              if (error) toast(`La réservation est enregistrée, mais le proforma n'a pas pu être mis à jour : ${error.message}`, 'error')
+              else toast('La réservation a été enregistrée et le proforma est marqué « transformé ».')
+            } else {
+              toast(form === 'new' ? 'La réservation a été enregistrée.' : 'Les modifications ont été enregistrées.')
+            }
+            setFromProforma(null)
             setForm(null)
             reload()
           }}

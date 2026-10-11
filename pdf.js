@@ -97,6 +97,64 @@ export function buildInvoice(info, b, inv) {
   return doc
 }
 
+// Facture proforma : devis avant réservation (pas une vraie facture)
+export function buildProforma(info, p) {
+  const doc = newDoc()
+  const balance = Number(p.total_amount) - Number(p.deposit)
+  header(doc, info, 'FACTURE PROFORMA', `N° ${p.number}`)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30)
+  doc.text(`Ziguinchor, le ${fdate(p.created_at.slice(0, 10))}`, 195, 49, { align: 'right' })
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(...GOLD)
+  doc.text(`Valable jusqu'au ${fdate(p.valid_until)}`, 195, 54, { align: 'right' })
+
+  let y = flow(doc, 52, 'Client', { size: 11, bold: true, color: GREEN })
+  y = flow(doc, y, `${[p.first_name, p.last_name].filter(Boolean).join(' ')}${p.phone ? `\nTél : ${p.phone}` : ''}`)
+
+  y += 8
+  doc.setFillColor(...GREEN); doc.rect(15, y, 180, 8, 'F')
+  doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9)
+  doc.text('Libellé', 18, y + 5.5); doc.text('Séjour', 90, y + 5.5, { align: 'center' })
+  doc.text('Nuitées', 119, y + 5.5, { align: 'center' }); doc.text('Prix / nuit', 146, y + 5.5, { align: 'center' }); doc.text('Montant', 192, y + 5.5, { align: 'right' })
+  y += 8
+  doc.setTextColor(30); doc.setFont('helvetica', 'normal')
+  const label = doc.splitTextToSize(`Séjour - ${p.unit_label}`, 44)
+  doc.text(label, 18, y + 6)
+  doc.text(`${fdate(p.check_in)} au ${fdate(p.check_out)}`, 90, y + 6, { align: 'center' })
+  doc.text(String(p.nights), 119, y + 6, { align: 'center' })
+  doc.text(m(p.price_per_night), 146, y + 6, { align: 'center' })
+  doc.text(m(p.total_amount), 192, y + 6, { align: 'right' })
+  const rowH = Math.max(11, label.length * 5.5 + 5)
+  doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(15, y + rowH, 195, y + rowH)
+
+  y += rowH + 12
+  doc.setFontSize(10)
+  doc.text('Montant total', 120, y); doc.text(m(p.total_amount), 192, y, { align: 'right' })
+  if (Number(p.deposit) > 0) {
+    doc.text('Acompte demandé', 120, y + 7); doc.text(m(p.deposit), 192, y + 7, { align: 'right' })
+    doc.setFillColor(...GREEN); doc.rect(115, y + 12, 80, 10, 'F')
+    doc.setTextColor(255); doc.setFont('helvetica', 'bold')
+    doc.text('Reste à payer ensuite', 120, y + 18.5); doc.text(m(balance), 192, y + 18.5, { align: 'right' })
+  } else {
+    doc.setFillColor(...GREEN); doc.rect(115, y + 5, 80, 10, 'F')
+    doc.setTextColor(255); doc.setFont('helvetica', 'bold')
+    doc.text('Total à payer', 120, y + 11.5); doc.text(m(p.total_amount), 192, y + 11.5, { align: 'right' })
+  }
+
+  let ny = flow(doc, y + 34, "Ce document est une facture proforma : il ne vaut pas facture définitive. La réservation n'est confirmée qu'après accord de la direction" + (Number(p.deposit) > 0 ? " et réception de l'acompte." : '.'), { size: 9, color: GREY })
+  ny = flow(doc, ny, `Modes de paiement acceptés : Espèces, Orange Money, Wave, Virement, Chèque.`, { size: 9, color: GREY })
+  if (p.note) ny = flow(doc, ny, p.note, { size: 9, color: GREY })
+
+  let sy = Math.max(y + 56, ny + 8)
+  if (sy > 235) { doc.addPage(); sy = 25 }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30)
+  doc.text('La direction', 155, sy, { align: 'center' })
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GREY)
+  doc.text(info.manager, 155, sy + 5, { align: 'center' })
+  seal(doc, 155, sy + 8)
+  footer(doc, info)
+  return doc
+}
+
 const RULES = (max) => [
   ['Respect des lieux', "Le client s'engage à user du logement et de son mobilier avec soin et à les restituer en bon état. Toute dégradation est à sa charge."],
   ['Nuisances sonores', 'Le calme doit être respecté à tout moment, notamment la nuit, afin de ne pas troubler les autres occupants et le voisinage.'],

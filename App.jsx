@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LayoutDashboard, CalendarPlus, Users, Receipt, Handshake, Settings, LogOut, Hotel } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, FileText, Users, Receipt, Handshake, Settings, LogOut, Hotel } from 'lucide-react'
 import { supabase } from './supabase'
 import { GIE } from './utils'
 import { NotifyProvider, Field } from './ui'
 import Dashboard from './Dashboard'
 import Bookings from './Bookings'
+import Proformas from './Proformas'
 import Clients from './Clients'
 import Expenses from './Expenses'
 import Courtiers from './Courtiers'
@@ -14,6 +15,7 @@ import DocView from './DocView'
 const TABS = [
   ['dash', 'Accueil', LayoutDashboard],
   ['res', 'Réservations', CalendarPlus],
+  ['pro', 'Proformas', FileText],
   ['cli', 'Clients', Users],
   ['dep', 'Dépenses', Receipt],
   ['cou', 'Courtiers', Handshake],
@@ -67,7 +69,7 @@ function Shell() {
   const [doc, setDoc] = useState(null)
   const [loadErr, setLoadErr] = useState('')
   const [newReq, setNewReq] = useState(null) // demande de nouvelle réservation depuis l'accueil : { date }
-  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], settings: {} })
+  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], proformas: [], settings: {} })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -83,17 +85,19 @@ function Shell() {
       supabase.from('expenses').select('*, units(name)').order('spent_on', { ascending: false }),
       supabase.from('settings').select('*'),
       supabase.from('brokers').select('*').order('name'),
+      supabase.from('proformas').select('*').order('created_at', { ascending: false }),
     ])
 
     const failed = res.find((r) => r.error)
     setLoadErr(failed ? `Chargement impossible : ${failed.error.message}` : '')
-    const [u, c, b, e, s, br] = res
+    const [u, c, b, e, s, br, pf] = res
     setData({
       units: u.data ?? [],
       clients: c.data ?? [],
       bookings: b.data ?? [],
       expenses: e.data ?? [],
       brokers: br.data ?? [],
+      proformas: pf.data ?? [],
       settings: Object.fromEntries((s.data ?? []).map((r) => [r.key, r.value])),
     })
   }, [])
@@ -112,15 +116,16 @@ function Shell() {
   const info = { ...GIE, ...Object.fromEntries(Object.entries(data.settings).filter(([, v]) => v)) }
 
   // Ouvre la page Réservations avec le formulaire de nouvelle réservation (date facultative)
-  const goNew = (date) => {
-    setNewReq({ date: date || null })
+  const goNew = (date, extra) => {
+    setNewReq({ date: date || null, ...(extra || {}) })
     setTab('res')
     window.scrollTo({ top: 0 })
   }
 
   const page = {
     dash: <Dashboard data={data} reload={reload} goNew={goNew} />,
-    res: <Bookings data={data} reload={reload} openDoc={setDoc} startNew={newReq} onStarted={() => setNewReq(null)} />,
+    res: <Bookings data={data} reload={reload} openDoc={setDoc} startNew={newReq} onStarted={() => setNewReq(null)} goPro={() => setTab('pro')} />,
+    pro: <Proformas data={data} reload={reload} openDoc={setDoc} goNew={goNew} />,
     cli: <Clients data={data} openDoc={setDoc} reload={reload} />,
     dep: <Expenses data={data} reload={reload} />,
     cou: <Courtiers data={data} reload={reload} />,
@@ -185,8 +190,8 @@ function Shell() {
 
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden" aria-label="Menu principal">
           <div className="mx-auto flex max-w-5xl items-center gap-1">
-            {TABS.map(([id, label, Icon]) => {
-              const active = tab === id
+            {TABS.filter(([id]) => id !== 'pro').map(([id, label, Icon]) => {
+              const active = tab === id || (id === 'res' && tab === 'pro')
               return (
                 <button
                   key={id}

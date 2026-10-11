@@ -1,6 +1,6 @@
 import { Printer, ArrowLeft, Share2, Download } from 'lucide-react'
 import { fcfa, fdate } from './utils'
-import { buildInvoice, buildContract, sharePdf, RULES } from './pdf'
+import { buildInvoice, buildContract, buildProforma, sharePdf, RULES } from './pdf'
 import { CACHET, SIGNATURE } from './assets'
 
 function Header({ info, title, subtitle }) {
@@ -70,6 +70,57 @@ function Invoice({ info, b, inv }) {
   )
 }
 
+function Proforma({ info, p }) {
+  const balance = Number(p.total_amount) - Number(p.deposit)
+  const name = [p.first_name, p.last_name].filter(Boolean).join(' ')
+  return (
+    <>
+      <Header info={info} title="FACTURE PROFORMA" subtitle={`N° ${p.number}`} />
+      <p className="mt-2 text-right text-xs">Ziguinchor, le {fdate(p.created_at.slice(0, 10))}</p>
+      <p className="text-right text-xs font-bold text-gold">Valable jusqu'au {fdate(p.valid_until)}</p>
+      <section className="mt-4 text-sm">
+        <p className="font-semibold text-salam-700">Client</p>
+        <p>{name}{p.phone ? ` — Tél : ${p.phone}` : ''}</p>
+      </section>
+      <table className="mt-6 w-full text-sm">
+        <thead className="bg-salam-700 text-white">
+          <tr><th className="p-2 text-left">Libellé</th><th className="p-2">Séjour</th><th className="p-2">Nuitées</th><th className="p-2">Prix / nuit</th><th className="p-2 text-right">Montant</th></tr>
+        </thead>
+        <tbody>
+          <tr className="border-b">
+            <td className="p-2">Séjour – {p.unit_label}</td>
+            <td className="p-2 text-center">{fdate(p.check_in)} au {fdate(p.check_out)}</td>
+            <td className="p-2 text-center">{p.nights}</td>
+            <td className="p-2 text-center">{fcfa(p.price_per_night)}</td>
+            <td className="p-2 text-right">{fcfa(p.total_amount)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="ml-auto mt-4 w-80 space-y-1 text-sm">
+        <p className="flex justify-between"><span>Montant total</span><b>{fcfa(p.total_amount)}</b></p>
+        {Number(p.deposit) > 0 ? (
+          <>
+            <p className="flex justify-between"><span>Acompte demandé</span><b>{fcfa(p.deposit)}</b></p>
+            <p className="flex justify-between rounded bg-salam-700 p-2 text-white"><span>Reste à payer ensuite</span><b>{fcfa(balance)}</b></p>
+          </>
+        ) : (
+          <p className="flex justify-between rounded bg-salam-700 p-2 text-white"><span>Total à payer</span><b>{fcfa(p.total_amount)}</b></p>
+        )}
+      </div>
+      <p className="mt-6 text-xs text-slate-600">
+        Ce document est une facture proforma : il ne vaut pas facture définitive. La réservation n'est confirmée qu'après accord de la direction{Number(p.deposit) > 0 ? " et réception de l'acompte" : ''}.
+      </p>
+      <p className="mt-1 text-xs text-slate-600">Modes de paiement acceptés : Espèces, Orange Money, Wave, Virement, Chèque.</p>
+      {p.note && <p className="mt-1 whitespace-pre-line text-xs text-slate-600">{p.note}</p>}
+      <div className="ml-auto mt-8 w-64 break-inside-avoid text-center text-sm">
+        <p className="font-semibold">La direction</p>
+        <p className="text-xs text-slate-500">{info.manager}</p>
+        <Seal />
+      </div>
+    </>
+  )
+}
+
 function Contract({ info, b }) {
   const balance = Number(b.total_amount) - Number(b.advance)
   return (
@@ -108,9 +159,10 @@ function Contract({ info, b }) {
 }
 
 export default function DocView({ doc, info, onClose }) {
-  const { type, booking: b, invoice } = doc
-  const make = () => (type === 'invoice' ? buildInvoice(info, b, invoice) : buildContract(info, b))
-  const filename = (type === 'invoice' ? `Facture-${invoice.number}` : `Contrat-${b.clients.last_name}-${b.units.name}`).replace(/[^\w-]+/g, '_') + '.pdf'
+  const { type, booking: b, invoice, proforma } = doc
+  const make = () => (type === 'proforma' ? buildProforma(info, proforma) : type === 'invoice' ? buildInvoice(info, b, invoice) : buildContract(info, b))
+  const base = type === 'proforma' ? `Proforma-${proforma.number}` : type === 'invoice' ? `Facture-${invoice.number}` : `Contrat-${b.clients.last_name}-${b.units.name}`
+  const filename = base.replace(/[^\w-]+/g, '_') + '.pdf'
   return (
     <div className="min-h-screen bg-slate-200 print:bg-white">
       <div className="sticky top-0 z-10 flex flex-wrap gap-2 bg-salam-900 p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] print:hidden">
@@ -120,7 +172,7 @@ export default function DocView({ doc, info, onClose }) {
         <button className="btn hidden bg-white text-slate-800 md:inline-flex" onClick={() => window.print()}><Printer size={16} /> Imprimer</button>
       </div>
       <article className="mx-auto my-4 max-w-[210mm] bg-white p-5 shadow md:p-10 print:my-0 print:max-w-none print:p-0 print:shadow-none">
-        {type === 'invoice' ? <Invoice info={info} b={b} inv={invoice} /> : <Contract info={info} b={b} />}
+        {type === 'proforma' ? <Proforma info={info} p={proforma} /> : type === 'invoice' ? <Invoice info={info} b={b} inv={invoice} /> : <Contract info={info} b={b} />}
         <footer className="mt-10 border-t-4 border-salam-700 pt-2 text-center text-xs text-slate-500">
           {info.name} · RC {info.rc} · NINEA {info.ninea} · {info.address}
         </footer>

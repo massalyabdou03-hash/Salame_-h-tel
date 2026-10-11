@@ -4,17 +4,22 @@ import { PAY_MODES, fcfa, today, addDays, nightsBetween } from './utils'
 import { Field, useNotify } from './ui'
 import { longDate } from './calendar'
 
-export default function BookingForm({ booking, initialDate, units, clients, brokers = [], reloadBrokers, onDone, onCancel }) {
+export default function BookingForm({ booking, initialDate, prefill, units, clients, brokers = [], reloadBrokers, onDone, onCancel }) {
   const { toast } = useNotify()
   const editing = Boolean(booking)
   const startDay = !editing && initialDate ? initialDate : today()
-  const [isNew, setIsNew] = useState(!editing && clients.length === 0)
-  const [clientId, setClientId] = useState('')
+  // Si un client existant a le même téléphone que le proforma, on le sélectionne ; sinon nouveau client prérempli
+  const digits = (x) => String(x ?? '').replace(/\D/g, '')
+  const known = !editing && prefill?.phone ? clients.find((x) => digits(x.phone) && digits(x.phone) === digits(prefill.phone)) : null
+  const [isNew, setIsNew] = useState(!editing && (clients.length === 0 || (Boolean(prefill) && !known)))
+  const [clientId, setClientId] = useState(known ? known.id : '')
   const [created, setCreated] = useState(null) // évite un doublon client si la réservation échoue
-  const [c, setC] = useState({ last_name: '', first_name: '', phone: '', id_number: '' })
+  const [c, setC] = useState({ last_name: prefill?.last_name || '', first_name: prefill?.first_name || '', phone: prefill?.phone || '', id_number: '' })
   const [f, setF] = useState(editing
     ? { unit_id: String(booking.unit_id), check_in: booking.check_in, check_out: booking.check_out, payment_mode: booking.payment_mode, advance: String(booking.advance), total: String(booking.total_amount) }
-    : { unit_id: '', check_in: startDay, check_out: addDays(startDay, 1), payment_mode: PAY_MODES[0], advance: '0', total: '' })
+    : prefill
+      ? { unit_id: prefill.unit_id || '', check_in: prefill.check_in, check_out: prefill.check_out, payment_mode: PAY_MODES[0], advance: prefill.advance || '0', total: prefill.total || '' }
+      : { unit_id: '', check_in: startDay, check_out: addDays(startDay, 1), payment_mode: PAY_MODES[0], advance: '0', total: '' })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   // Courtier (facultatif). Si la commission est déjà versée, ces champs sont verrouillés.
@@ -88,6 +93,7 @@ export default function BookingForm({ booking, initialDate, units, clients, brok
     }
 
     let error
+    let savedId = booking?.id
     if (editing) {
       ({ error } = await supabase.from('bookings').update(payload).eq('id', booking.id))
     } else {
@@ -99,12 +105,14 @@ export default function BookingForm({ booking, initialDate, units, clients, brok
         cid = r.data.id
         setCreated(cid)
       }
-      ({ error } = await supabase.from('bookings').insert({ client_id: cid, ...payload }))
+      const ins = await supabase.from('bookings').insert({ client_id: cid, ...payload }).select('id').single()
+      error = ins.error
+      savedId = ins.data?.id
     }
 
     setBusy(false)
     if (error) return setErr(error.code === '23P01' ? 'Ce logement est déjà réservé sur ces dates.' : error.message.includes('commission') ? 'La commission ne peut pas dépasser le montant total.' : error.message)
-    onDone()
+    onDone(savedId)
   }
 
   return (
@@ -113,6 +121,7 @@ export default function BookingForm({ booking, initialDate, units, clients, brok
         <div>
           <h2 className="text-lg font-bold">{editing ? 'Modifier la réservation' : 'Nouvelle réservation'}</h2>
           {!editing && initialDate && <p className="text-sm text-slate-500">Arrivée prévue le {longDate(initialDate)}</p>}
+          {!editing && prefill && <p className="text-sm text-slate-500">Informations reprises du proforma. Complétez la pièce d'identité du client si besoin.</p>}
         </div>
         {!editing && clients.length > 0 && (
           <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setIsNew(!isNew)}>
