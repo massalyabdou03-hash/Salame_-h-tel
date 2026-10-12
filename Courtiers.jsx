@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Handshake, Check, Undo2, Wallet, Banknote } from 'lucide-react'
+import { Handshake, Check, Undo2, Wallet, Banknote, Trash2, EyeOff, Eye } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, clientName } from './utils'
 import { Field, PageHeader, Section, Stat, Empty, useNotify } from './ui'
@@ -15,7 +15,10 @@ const pct = (b) => (Number(b.total_amount) > 0 ? Math.round((Number(b.commission
 
 export default function Courtiers({ data, reload }) {
   const { toast, confirm } = useNotify()
-  const brokers = data.brokers ?? []
+  const allBrokers = data.brokersAll ?? data.brokers ?? []
+  const archivedIds = data.archivedIds ?? []
+  const brokers = allBrokers.filter((x) => !archivedIds.includes(x.id))
+  const hidden = allBrokers.filter((x) => archivedIds.includes(x.id))
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [err, setErr] = useState('')
@@ -24,7 +27,7 @@ export default function Courtiers({ data, reload }) {
   const [busyId, setBusyId] = useState(null) // réservation en cours de mise à jour
   const [month, setMonth] = useState('')
 
-  const nameOf = Object.fromEntries(brokers.map((x) => [x.id, x.name]))
+  const nameOf = Object.fromEntries(allBrokers.map((x) => [x.id, x.name]))
 
   // Toutes les réservations qui ont une commission ; les annulées ne comptent plus dans les totaux
   const withComm = data.bookings.filter((b) => b.broker_id && Number(b.commission_amount) > 0)
@@ -72,6 +75,44 @@ export default function Courtiers({ data, reload }) {
     setBusyId(null)
     if (error) return toast(`Le changement n'a pas pu être enregistré : ${error.message}`, 'error')
     toast(paidNow ? `Versement de ${fcfa(b.commission_amount)} à ${who} enregistré.` : 'Le versement a été annulé.')
+    reload()
+  }
+
+
+  // Courtier jamais utilisé : on le supprime pour de bon. Courtier avec des réservations : on le retire seulement de la liste.
+  const countOf = (id) => data.bookings.filter((b) => b.broker_id === id).length
+  const saveArchived = async (ids) => {
+    const { error } = await supabase.from('settings').upsert([{ key: 'brokers_archived', value: JSON.stringify(ids) }])
+    return error
+  }
+  const removeBroker = async (br) => {
+    const n = countOf(br.id)
+    if (n === 0) {
+      const ok = await confirm({ title: 'Supprimer ce courtier ?', message: `« ${br.name} » n'a aucune réservation.\n\nIl sera supprimé définitivement de la liste.`, confirmLabel: 'Oui, supprimer', cancelLabel: 'Non, le garder', danger: true })
+      if (!ok) return
+      const { error } = await supabase.from('brokers').delete().eq('id', br.id)
+      if (error) return toast(error.code === '23503' ? `« ${br.name} » est lié à des réservations : il ne peut pas être supprimé.` : `Le courtier n'a pas pu être supprimé : ${error.message}`, 'error')
+      toast(`Le courtier « ${br.name} » a été supprimé.`)
+      return reload()
+    }
+    const st = statsOf(br.id)
+    const ok = await confirm({
+      title: 'Retirer ce courtier de la liste ?',
+      message: `« ${br.name} » a ${n} réservation${n > 1 ? 's' : ''}, il ne peut donc pas être supprimé : l'historique et les commissions doivent rester.\n\nIl ne sera plus proposé quand vous faites une réservation.${st.rest > 0 ? `\n\nAttention : il lui reste ${fcfa(st.rest)} à verser.` : ''}\n\nVous pourrez le remettre quand vous voulez.`,
+      confirmLabel: 'Oui, le retirer',
+      cancelLabel: 'Non, le garder',
+      danger: true,
+    })
+    if (!ok) return
+    const error = await saveArchived([...archivedIds, br.id])
+    if (error) return toast(`Le changement n'a pas pu être enregistré : ${error.message}`, 'error')
+    toast(`« ${br.name} » a été retiré de la liste.`)
+    reload()
+  }
+  const restoreBroker = async (br) => {
+    const error = await saveArchived(archivedIds.filter((x) => x !== br.id))
+    if (error) return toast(`Le changement n'a pas pu être enregistré : ${error.message}`, 'error')
+    toast(`« ${br.name} » est de nouveau dans la liste.`)
     reload()
   }
 
@@ -153,11 +194,36 @@ export default function Courtiers({ data, reload }) {
                   })}
                 </ul>
               )}
+              <div className="border-t border-slate-100 pt-3">
+                <button type="button" className="btn btn-secondary" onClick={() => removeBroker(br)} aria-label={`${countOf(br.id) === 0 ? 'Supprimer' : 'Retirer de la liste'} le courtier ${br.name}`}>
+                  {countOf(br.id) === 0 ? <><Trash2 size={16} /> Supprimer ce courtier</> : <><EyeOff size={16} /> Retirer de la liste</>}
+                </button>
+              </div>
             </li>
           )
         })}
       </ul>
       </Section>
+
+
+      {hidden.length > 0 && (
+        <Section title={`Courtiers retirés de la liste (${hidden.length})`} hint="Ils ne sont plus proposés dans les réservations. Leur historique est conservé.">
+          <ul className="grid gap-3 xl:grid-cols-2">
+            {hidden.map((br) => {
+              const st = statsOf(br.id)
+              return (
+                <li key={br.id} className="card flex flex-wrap items-center justify-between gap-3 !p-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{br.name}</p>
+                    <p className="text-xs text-slate-500">{countOf(br.id)} réservation{countOf(br.id) > 1 ? 's' : ''} · reste à verser {fcfa(st.rest)}</p>
+                  </div>
+                  <button type="button" className="btn btn-secondary" onClick={() => restoreBroker(br)} aria-label={`Remettre le courtier ${br.name} dans la liste`}><Eye size={16} /> Remettre dans la liste</button>
+                </li>
+              )
+            })}
+          </ul>
+        </Section>
+      )}
 
       <Section title="Historique des versements" hint="Tout l'argent versé aux courtiers, du plus récent au plus ancien.">
       <div className="flex flex-wrap items-end gap-4">

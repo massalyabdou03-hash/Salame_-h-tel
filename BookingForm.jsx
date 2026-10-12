@@ -211,6 +211,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
                   <select className="input" value={brokerId} onChange={(e) => setBrokerId(e.target.value)}>
                     <option value="">{showSource ? 'Choisir…' : 'Aucun'}</option>
                     {brokers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                    {brokerId && !brokers.some((x) => String(x.id) === brokerId) && <option value={brokerId}>{booking?.broker_name || 'Courtier'} (retiré de la liste)</option>}
                   </select>
                 </Field>
                 {brokerId && !isHold && (

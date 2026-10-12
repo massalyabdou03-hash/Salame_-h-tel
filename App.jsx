@@ -70,7 +70,7 @@ function Shell() {
   const [loadErr, setLoadErr] = useState('')
   const [newReq, setNewReq] = useState(null) // demande de nouvelle réservation depuis l'accueil : { date }
   const [focusId, setFocusId] = useState(null) // réservation à montrer dans la page Réservations
-  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], proformas: [], settings: {} })
+  const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], brokersAll: [], archivedIds: [], proformas: [], settings: {} })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -92,13 +92,18 @@ function Shell() {
     const failed = res.find((r) => r.error)
     setLoadErr(failed ? `Chargement impossible : ${failed.error.message}` : '')
     const [u, c, b, e, s, br, pf] = res
+    let archived = []
+    try { const v = JSON.parse((s.data ?? []).find((r) => r.key === 'brokers_archived')?.value || '[]'); if (Array.isArray(v)) archived = v.map(Number) } catch { /* liste illisible : on ignore */ }
     setData({
       units: u.data ?? [],
       clients: c.data ?? [],
       // Nom du courtier ajouté à chaque réservation (sert à afficher « Bloqué par … »)
       bookings: (b.data ?? []).map((x) => ({ ...x, broker_name: (br.data ?? []).find((y) => y.id === x.broker_id)?.name ?? null })),
       expenses: e.data ?? [],
-      brokers: br.data ?? [],
+      // Courtiers retirés de la liste : cachés des choix, mais gardés avec leur historique
+      brokers: (br.data ?? []).filter((x) => !archived.includes(x.id)),
+      brokersAll: br.data ?? [],
+      archivedIds: archived,
       proformas: pf.data ?? [],
       settings: Object.fromEntries((s.data ?? []).map((r) => [r.key, r.value])),
     })
@@ -115,7 +120,7 @@ function Shell() {
   if (session === undefined) return null
   if (!session) return <Login />
 
-  const info = { ...GIE, ...Object.fromEntries(Object.entries(data.settings).filter(([, v]) => v)) }
+  const info = { ...GIE, ...Object.fromEntries(Object.entries(data.settings).filter(([k, v]) => v && k !== 'brokers_archived')) }
 
   // Ouvre la page Réservations avec le formulaire de nouvelle réservation (date facultative)
   const goNew = (date, extra) => {
