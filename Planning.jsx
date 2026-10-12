@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Check, LogIn, LogOut, Pencil, UserPlus, Unlock, ExternalLink, Wrench, Handshake } from 'lucide-react'
-import { fcfa, fdate, today, addDays, stageOf, isHold, clientName, shortName, STAGE } from './utils'
+import { fcfa, fdate, today, addDays, stageOf, isHold, isJotted, clientName, shortName, STAGE } from './utils'
 import { monthOf, shiftMonth, monthTitle, weekdayIndex, longDate } from './calendar'
 import { Badge } from './ui'
 import { dakarDate, dakarTime } from './stay'
@@ -22,6 +22,7 @@ const covers = (b, d) => b.check_in <= d && d < b.check_out
 // Apparence d'une réservation sur le planning
 //  - client direct : vert · via un courtier : doré · bloqué (client inconnu) : doré en pointillés
 const barStyle = (b) => {
+  if (isJotted(b)) return 'border-2 border-dashed border-salam-600 bg-salam-50 text-salam-800'
   if (isHold(b)) return 'border-2 border-dashed border-gold bg-amber-50 text-amber-900'
   if (b.broker_id) return 'bg-gold text-white'
   return 'bg-salam-600 text-white'
@@ -112,8 +113,8 @@ export default function Planning({ units, bookings, onFree, onOpen }) {
                     key={d}
                     type="button"
                     onClick={() => onFree(u, d)}
-                    aria-label={`${u.name}, libre le ${longDate(d)}. Réserver`}
-                    title={`Libre — réserver le ${longDate(d)}`}
+                    aria-label={`${u.name}, libre le ${longDate(d)}. Écrire ou réserver`}
+                    title={`Libre — écrire sur le ${longDate(d)}`}
                     style={{ gridColumn: i + 2, gridRow: 1 }}
                     className={`h-10 border-l border-slate-100 transition-colors hover:bg-salam-100 ${d === t ? 'bg-salam-50' : 'bg-white'}`}
                   />
@@ -140,17 +141,19 @@ export default function Planning({ units, bookings, onFree, onOpen }) {
           <span className="flex items-center gap-1.5"><span className="h-3.5 w-5 rounded bg-salam-600" /> Client direct</span>
           <span className="flex items-center gap-1.5"><span className="h-3.5 w-5 rounded bg-gold" /> Client amené par un courtier</span>
           <span className="flex items-center gap-1.5"><span className="h-3.5 w-5 rounded border-2 border-dashed border-gold bg-amber-50" /> Bloqué par un courtier (client à préciser)</span>
+          <span className="flex items-center gap-1.5"><span className="h-3.5 w-5 rounded border-2 border-dashed border-salam-600 bg-salam-50" /> Écrit à la main (à compléter)</span>
           <span className="flex items-center gap-1.5"><span className="h-3.5 w-5 rounded bg-amber-100" /> En maintenance</span>
         </div>
-        <p className="text-slate-500">Chaque case est une nuit. Appuyez sur une case vide pour réserver, sur une case colorée pour voir la réservation.</p>
+        <p className="text-slate-500">Chaque case est une nuit. Appuyez sur une case vide pour écrire directement dessus, sur une case colorée pour voir la réservation.</p>
       </div>
     </div>
   )
 }
 
 // ---------- Fiche d'une réservation (ouverte depuis le planning) ----------
-export function BookingSheet({ b, onClose, onEdit, onDetails, onRelease, onArrive, onLeave }) {
+export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease, onArrive, onLeave }) {
   const hold = isHold(b)
+  const jotted = isJotted(b)
   const stage = stageOf(b)
   const total = Number(b.total_amount)
   const rest = total - Number(b.advance)
@@ -163,7 +166,9 @@ export function BookingSheet({ b, onClose, onEdit, onDetails, onRelease, onArriv
         <p className="text-sm font-semibold text-salam-700">{b.units?.name}</p>
         <h2 className="text-xl font-extrabold text-slate-900">{clientName(b)}</h2>
         <div className="mt-2 flex flex-wrap gap-2">
-          {hold
+          {jotted
+            ? <Badge className="bg-salam-50 text-salam-800"><Pencil size={12} className="mr-1" /> Écrit à la main · à compléter</Badge>
+            : hold
             ? <Badge className="bg-amber-100 text-amber-900"><Handshake size={12} className="mr-1" /> Logement bloqué · client à préciser</Badge>
             : b.broker_id
               ? <Badge className="bg-amber-100 text-amber-900"><Handshake size={12} className="mr-1" /> Via {b.broker_name || 'un courtier'}</Badge>
@@ -178,7 +183,11 @@ export function BookingSheet({ b, onClose, onEdit, onDetails, onRelease, onArriv
           <p className="font-semibold">{fdate(b.check_in)} → {fdate(b.check_out)}</p>
           <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
         </div>
-        {hold ? (
+        {jotted ? (
+          <div className="rounded-xl bg-salam-50 p-3 text-sm text-salam-800">
+            Vous avez écrit ces mots sur le planning. Quand vous avez les informations du client, appuyez sur <b>Compléter la réservation</b>.
+          </div>
+        ) : hold ? (
           <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
             Le logement est gardé pour {b.broker_name || 'le courtier'}. Quand le client est connu, appuyez sur <b>Ajouter le client</b>.
           </div>
@@ -203,8 +212,9 @@ export function BookingSheet({ b, onClose, onEdit, onDetails, onRelease, onArriv
         {canLeave && <button className="btn btn-secondary" onClick={() => onLeave(b)}><LogOut size={16} /> Client parti</button>}
         {hold ? (
           <>
-            <button className="btn btn-primary" onClick={() => onEdit(b)}><UserPlus size={16} /> Ajouter le client</button>
-            <button className="btn btn-danger ml-auto" onClick={() => onRelease(b)}><Unlock size={16} /> Libérer le logement</button>
+            <button className="btn btn-primary" onClick={() => onEdit(b)}><UserPlus size={16} /> {jotted ? 'Compléter la réservation' : 'Ajouter le client'}</button>
+            {jotted && <button className="btn btn-secondary" onClick={() => onQuick(b)}><Pencil size={16} /> Changer le texte ou les nuits</button>}
+            <button className="btn btn-danger ml-auto" onClick={() => onRelease(b)}><Unlock size={16} /> {jotted ? 'Effacer' : 'Libérer le logement'}</button>
           </>
         ) : (
           <>

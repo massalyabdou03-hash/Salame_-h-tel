@@ -35,7 +35,9 @@ export const STAGE = {
 export const isHold = (b) => !b.client_id
 // Nom à afficher pour une réservation (client, ou « Bloqué par … » si le client n'est pas encore connu)
 export const clientName = (b) =>
-  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : `Bloqué par ${b.broker_name || 'un courtier'}`
+  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : isJotted(b) ? b.note.trim() : `Bloqué par ${b.broker_name || 'un courtier'}`
 // Prénom + nom court pour les petits espaces (planning)
 export const shortName = (b) =>
-  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : `${b.broker_name || 'Courtier'} · client à préciser`
+  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : isJotted(b) ? b.note.trim() : `${b.broker_name || 'Courtier'} · client à préciser`
+// Case remplie à la main sur le planning : ni client, ni courtier, juste quelques mots écrits
+export const isJotted = (b) => !b.client_id && !b.broker_id && Boolean(b.note && b.note.trim())

@@ -53,7 +53,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
   const [note, setNote] = useState(editing ? booking.note || '' : '')
   const isLegacy = editing ? Boolean(booking.legacy) : legacy
   // Qui réserve ? Client direct ou courtier (avec ou sans client connu)
-  const [source, setSource] = useState(holdEdit ? 'courtier' : 'direct')
+  const [source, setSource] = useState(holdEdit && booking.broker_id ? 'courtier' : 'direct')
   const [clientKnown, setClientKnown] = useState(!holdEdit)
   const showSource = choosingClient && !isLegacy
   const viaBroker = showSource ? source === 'courtier' : true
@@ -159,14 +159,16 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
     onDone(savedId, { hold: isHold })
   }
 
-  const title = holdEdit ? 'Logement bloqué par un courtier' : editing ? 'Modifier la réservation' : 'Nouvelle réservation'
+  const jotted = holdEdit && !booking.broker_id
+  const title = jotted ? 'Compléter la réservation' : holdEdit ? 'Logement bloqué par un courtier' : editing ? 'Modifier la réservation' : 'Nouvelle réservation'
 
   return (
     <form onSubmit={submit} className="card space-y-5 border-salam-600/40 !p-6 ring-1 ring-salam-600/10">
       <div className="flex flex-wrap items-center justify-between gap-2 pr-10">
         <div>
           <h2 className="text-lg font-bold">{title}</h2>
-          {holdEdit && <p className="text-sm text-slate-500">Quand vous connaissez le client, choisissez « Je connais le client » pour l'ajouter.</p>}
+          {jotted && <p className="text-sm text-slate-500">Vous aviez écrit : « {booking.note} ». Indiquez maintenant le client et les prix.</p>}
+          {holdEdit && !jotted && <p className="text-sm text-slate-500">Quand vous connaissez le client, choisissez « Je connais le client » pour l'ajouter.</p>}
           {!editing && initialDate && <p className="text-sm text-slate-500">Arrivée prévue le {longDate(initialDate)}{unit ? ` · ${unit.name}` : ''}</p>}
           {!editing && prefill && <p className="text-sm text-slate-500">Informations reprises du proforma. Complétez la pièce d'identité du client si besoin.</p>}
         </div>

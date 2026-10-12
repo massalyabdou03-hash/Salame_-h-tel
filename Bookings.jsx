@@ -4,7 +4,7 @@ import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Tra
 import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
 import BookingForm from './BookingForm'
-import { fcfa, fdate, stageOf, STAGE, isHold, clientName } from './utils'
+import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
 import { PageHeader, Badge, Empty, useNotify } from './ui'
 import { useStayActions, dakarDate, dakarTime } from './stay'
 
@@ -181,6 +181,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
           const advance = Number(b.advance)
           const rest = total - advance
           const hold = isHold(b)
+          const jotted = isJotted(b)
 
           return (
             <li key={b.id} id={`res-${b.id}`} className={`card space-y-4 transition ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}>
@@ -190,7 +191,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                   <p className="text-sm font-semibold text-salam-700">{b.units.name}</p>
                   {(hold || b.broker_id) && (
                     <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                      <Handshake size={12} /> {hold ? 'Client à préciser' : `Via ${b.broker_name || 'un courtier'}`}
+                      <Handshake size={12} /> {jotted ? 'Écrit à la main · à compléter' : hold ? 'Client à préciser' : `Via ${b.broker_name || 'un courtier'}`}
                     </p>
                   )}
                   {b.legacy && (
@@ -213,7 +214,9 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                 </div>
                 {hold ? (
                   <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2 lg:col-span-3">
-                    Le logement est gardé pour {b.broker_name || 'le courtier'}. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> quand il est connu.
+                    {jotted
+                      ? <>Écrit à la main sur le planning. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> pour compléter la réservation.</>
+                      : <>Le logement est gardé pour {b.broker_name || 'le courtier'}. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> quand il est connu.</>}
                   </p>
                 ) : (<>
                 <div>

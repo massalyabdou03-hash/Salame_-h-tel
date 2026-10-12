@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, clientName } from './utils'
+import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
 import { MonthCalendar, DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
+import QuickNote from './QuickNote'
 import { longDate } from './calendar'
 import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
@@ -171,14 +172,16 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
   const [sheetId, setSheetId] = useState(null)
   const sheet = sheetId ? bookings.find((b) => b.id === sheetId) : null
 
-  const startNew = (date, unit_id) => { setSheetId(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+  const [quick, setQuick] = useState(null) // écriture directe : { unit, date } ou { unit, booking } pour corriger
+
+  const startNew = (date, unit_id) => { setSheetId(null); setQuick(null); setForm({ date: date || null, unit_id: unit_id || null }) }
 
   // Libère un logement bloqué par un courtier (aucun argent en jeu)
   const release = async (b) => {
     const ok = await confirm({
-      title: 'Libérer ce logement ?',
-      message: `${clientName(b)} — ${b.units?.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\nLe blocage sera retiré et le logement sera de nouveau libre.`,
-      confirmLabel: 'Oui, libérer',
+      title: isJotted(b) ? 'Effacer ce qui est écrit ?' : 'Libérer ce logement ?',
+      message: `${clientName(b)} — ${b.units?.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\n${isJotted(b) ? 'Ce texte sera effacé' : 'Le blocage sera retiré'} et le logement sera de nouveau libre.`,
+      confirmLabel: isJotted(b) ? 'Oui, effacer' : 'Oui, libérer',
       cancelLabel: 'Non, le garder',
       danger: true,
     })
@@ -237,11 +240,27 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </Modal>
       )}
 
-      {sheet && !form && (
+      {quick && (
+        <Modal label="Écrire sur le planning" onClose={() => setQuick(null)} width="max-w-md">
+          <QuickNote
+            key={quick.booking ? quick.booking.id : `${quick.unit.id}-${quick.date}`}
+            unit={quick.unit}
+            date={quick.date}
+            booking={quick.booking}
+            bookings={bookings}
+            onCancel={() => setQuick(null)}
+            onMore={() => startNew(quick.date, quick.unit.id)}
+            onDone={(edited) => { toast(edited ? 'Les modifications ont été enregistrées.' : 'C\'est noté sur le planning.'); setQuick(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {sheet && !form && !quick && (
         <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
           <BookingSheet
             b={sheet}
             onEdit={(b) => { setSheetId(null); setForm({ booking: b }) }}
+            onQuick={(b) => { setSheetId(null); setQuick({ unit: b.units, booking: b }) }}
             onDetails={(b) => goBooking(b.id)}
             onRelease={release}
             onArrive={arrive}
@@ -262,7 +281,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         }
       >
         {view === 'planning' ? (
-          <Planning units={units} bookings={bookings} onFree={(u, d) => startNew(d, u.id)} onOpen={(b) => setSheetId(b.id)} />
+          <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
         ) : (
           <>
             <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
