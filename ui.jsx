@@ -89,13 +89,26 @@ export function Modal({ label, onClose, children, width = 'max-w-3xl' }) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={label}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-slate-900/50 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:p-6"
+      role="dialog" aria-modal="true" aria-label={label}
+    >
       <div className={`relative mx-auto my-2 w-full ${width}`}>
+        {/* Téléphone : barre « Fermer » collée en haut, sous la barre d'état, jamais cachée */}
+        <div className="sticky top-0 z-[55] -mt-1 mb-2 flex justify-end sm:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer la fenêtre"
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-white px-4 text-slate-700 shadow-lg ring-1 ring-slate-300 active:bg-slate-100"
+          ><X size={18} /><span className="text-sm font-semibold">Fermer</span></button>
+        </div>
+        {/* Grand écran : croix sur la fenêtre */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Fermer la fenêtre"
-          className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-slate-200 hover:bg-slate-100"
+          className="absolute right-3 top-3 z-10 hidden h-9 w-9 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-slate-200 hover:bg-slate-100 sm:grid"
         ><X size={18} /></button>
         {children}
       </div>

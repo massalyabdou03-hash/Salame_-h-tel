@@ -52,6 +52,8 @@
 
 @layer components {
   .input {
+    min-width: 0;
+    max-width: 100%;
     @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-slate-800 shadow-sm;
     @apply placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500;
     @apply focus:border-salam-600 focus:outline-none focus:ring-3 focus:ring-salam-100;
@@ -168,4 +170,13 @@
   .card {
     @apply p-4;
   }
+}
+
+/* iPhone : un champ date ne doit pas dépasser de sa carte */
+input.input[type='date'],
+input.input[type='month'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-height: 2.9rem;
 }
