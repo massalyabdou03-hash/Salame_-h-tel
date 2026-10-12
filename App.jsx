@@ -69,6 +69,7 @@ function Shell() {
   const [doc, setDoc] = useState(null)
   const [loadErr, setLoadErr] = useState('')
   const [newReq, setNewReq] = useState(null) // demande de nouvelle réservation depuis l'accueil : { date }
+  const [focusId, setFocusId] = useState(null) // réservation à montrer dans la page Réservations
   const [data, setData] = useState({ units: [], clients: [], bookings: [], expenses: [], brokers: [], proformas: [], settings: {} })
 
   useEffect(() => {
@@ -94,7 +95,8 @@ function Shell() {
     setData({
       units: u.data ?? [],
       clients: c.data ?? [],
-      bookings: b.data ?? [],
+      // Nom du courtier ajouté à chaque réservation (sert à afficher « Bloqué par … »)
+      bookings: (b.data ?? []).map((x) => ({ ...x, broker_name: (br.data ?? []).find((y) => y.id === x.broker_id)?.name ?? null })),
       expenses: e.data ?? [],
       brokers: br.data ?? [],
       proformas: pf.data ?? [],
@@ -122,9 +124,16 @@ function Shell() {
     window.scrollTo({ top: 0 })
   }
 
+  // Ouvre la page Réservations sur une réservation précise
+  const goBooking = (id) => {
+    setFocusId(id)
+    setTab('res')
+    window.scrollTo({ top: 0 })
+  }
+
   const page = {
-    dash: <Dashboard data={data} reload={reload} goNew={goNew} />,
-    res: <Bookings data={data} reload={reload} openDoc={setDoc} startNew={newReq} onStarted={() => setNewReq(null)} goPro={() => setTab('pro')} />,
+    dash: <Dashboard data={data} reload={reload} goNew={goNew} goBooking={goBooking} />,
+    res: <Bookings data={data} reload={reload} openDoc={setDoc} startNew={newReq} onStarted={() => setNewReq(null)} goPro={() => setTab('pro')} focusId={focusId} onFocused={() => setFocusId(null)} />,
     pro: <Proformas data={data} reload={reload} openDoc={setDoc} goNew={goNew} />,
     cli: <Clients data={data} openDoc={setDoc} reload={reload} />,
     dep: <Expenses data={data} reload={reload} />,

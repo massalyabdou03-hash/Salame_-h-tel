@@ -30,3 +30,12 @@ export const STAGE = {
   terminee: ['Terminé', 'bg-slate-100 text-slate-700'],
   annulee: ['Annulée', 'bg-red-100 text-red-800'],
 }
+
+// Réservation « bloquée » par un courtier : le logement est réservé mais le client n'est pas encore connu
+export const isHold = (b) => !b.client_id
+// Nom à afficher pour une réservation (client, ou « Bloqué par … » si le client n'est pas encore connu)
+export const clientName = (b) =>
+  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : `Bloqué par ${b.broker_name || 'un courtier'}`
+// Prénom + nom court pour les petits espaces (planning)
+export const shortName = (b) =>
+  b.clients ? `${b.clients.first_name} ${b.clients.last_name}`.trim() : `${b.broker_name || 'Courtier'} · client à préciser`

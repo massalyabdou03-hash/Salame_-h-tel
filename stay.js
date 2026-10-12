@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { useNotify } from './ui'
+import { clientName } from './utils'
 
 // Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
 const DAKAR = { timeZone: 'Africa/Dakar' }
@@ -7,7 +8,7 @@ export const dakarDay = (ts) => new Date(ts).toLocaleDateString('sv-SE', DAKAR)
 export const dakarDate = (ts) => new Date(ts).toLocaleDateString('fr-FR', DAKAR)
 export const dakarTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { ...DAKAR, hour: '2-digit', minute: '2-digit' })
 
-const who = (b) => `${b.clients?.first_name ?? ''} ${b.clients?.last_name ?? ''}`.trim()
+const who = clientName
 
 // Enregistrer l'heure d'arrivée / de départ d'un client.
 // L'heure est fixée par le serveur au moment du clic : elle ne dépend pas de l'ordinateur.

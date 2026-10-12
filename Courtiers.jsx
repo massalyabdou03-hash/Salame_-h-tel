@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Handshake, Check, Undo2, Wallet, Banknote } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate } from './utils'
+import { fcfa, fdate, clientName } from './utils'
 import { Field, PageHeader, Section, Stat, Empty, useNotify } from './ui'
 
 // Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
@@ -130,7 +130,7 @@ export default function Courtiers({ data, reload }) {
                     return (
                       <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold">{b.units?.name} · {b.clients?.first_name} {b.clients?.last_name}</p>
+                          <p className="truncate font-semibold">{b.units?.name} · {clientName(b)}</p>
                           <p className="text-xs text-slate-500">
                             {fdate(b.check_in)} → {fdate(b.check_out)} · commission {fcfa(b.commission_amount)} ({pct(b)} % du total)
                           </p>
@@ -175,7 +175,7 @@ export default function Courtiers({ data, reload }) {
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{nameOf[b.broker_id]}</p>
               <p className="truncate text-xs text-slate-500">
-                {b.units?.name} · {b.clients?.first_name} {b.clients?.last_name} · {fdate(b.check_in)}
+                {b.units?.name} · {clientName(b)} · {fdate(b.check_in)}
                 {b.status === 'annulee' && <span className="text-red-700"> · réservation annulée</span>}
               </p>
             </div>

@@ -74,6 +74,35 @@ export const Empty = ({ children }) => (
 
 // ---------- Messages et confirmations (remplacent alert() et confirm()) ----------
 
+// Fenêtre par-dessus la page (formulaire, fiche). On la ferme avec la croix ou la touche Échap.
+export function Modal({ label, onClose, children, width = 'max-w-3xl' }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      if (document.querySelector('[data-notify-dialog]')) return // une confirmation est ouverte : elle gère Échap
+      onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={label}>
+      <div className={`relative mx-auto my-2 w-full ${width}`}>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer la fenêtre"
+          className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white text-slate-600 shadow ring-1 ring-slate-200 hover:bg-slate-100"
+        ><X size={18} /></button>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 const NotifyContext = createContext(null)
 
 export function useNotify() {
@@ -142,6 +171,7 @@ export function NotifyProvider({ children }) {
           <div
             role="dialog"
             aria-modal="true"
+            data-notify-dialog
             aria-label={dialog.title}
             className="w-full max-w-md space-y-3 rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}

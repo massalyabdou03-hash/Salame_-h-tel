@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Trash2, LogIn, LogOut } from 'lucide-react'
+import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Trash2, LogIn, LogOut, UserPlus, Unlock, Handshake } from 'lucide-react'
 
 import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
 import BookingForm from './BookingForm'
-import { fcfa, fdate, stageOf, STAGE } from './utils'
+import { fcfa, fdate, stageOf, STAGE, isHold, clientName } from './utils'
 import { PageHeader, Badge, Empty, useNotify } from './ui'
 import { useStayActions, dakarDate, dakarTime } from './stay'
 
@@ -16,7 +16,7 @@ const FILTERS = [
   ['annulee', 'Annulées'],
 ]
 
-export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro }) {
+export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro, focusId, onFocused }) {
   const { toast, confirm, inform } = useNotify()
   const { arrive, leave, undo } = useStayActions(reload)
   const [form, setForm] = useState(startNew ? 'new' : null)
@@ -33,6 +33,20 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
     onStarted?.()
   }, [startNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Venu du planning : on montre la réservation choisie (liste complète, défilement, surbrillance)
+  const [lit, setLit] = useState(null)
+  useEffect(() => {
+    if (!focusId) return
+    setFilter('all')
+    setLit(focusId)
+    onFocused?.()
+    const timer = setTimeout(() => setLit(null), 4000)
+    return () => clearTimeout(timer)
+  }, [focusId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (lit) document.getElementById(`res-${lit}`)?.scrollIntoView({ block: 'center' })
+  }, [lit, filter])
+
   const openInvoice = async (b) => {
     const inv = await getOrCreateInvoice(b)
     if (!inv) return toast("La facture n'a pas pu être créée. Vérifiez la connexion internet et réessayez.", 'error')
@@ -42,7 +56,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
   const cancel = async (b) => {
     const ok = await confirm({
       title: 'Annuler cette réservation ?',
-      message: `${b.clients.first_name} ${b.clients.last_name} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\nLe logement redeviendra libre pour ces dates. La réservation restera visible dans « Annulées ».`,
+      message: `${clientName(b)} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\nLe logement redeviendra libre pour ces dates. La réservation restera visible dans « Annulées ».`,
       confirmLabel: 'Oui, annuler la réservation',
       cancelLabel: 'Non, la garder',
       danger: true,
@@ -66,10 +80,12 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
     // La facture de la réservation est supprimée avec elle : on prévient avant de confirmer
     const { data: inv } = await supabase.from('invoices').select('number').eq('booking_id', b.id).maybeSingle()
 
-    let msg = `${b.clients.first_name} ${b.clients.last_name} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.`
+    let msg = `${clientName(b)} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.`
     if (inv) msg += `\n\nLa facture ${inv.number} sera supprimée aussi.`
     msg += '\n\nCette action est définitive.'
-    if (!(await confirm({ title: 'Supprimer cette réservation ?', message: msg, confirmLabel: 'Oui, supprimer', cancelLabel: 'Non, la garder', danger: true }))) return
+    if (isHold(b)) {
+      if (!(await confirm({ title: 'Libérer ce logement ?', message: `${clientName(b)} — ${b.units.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\nLe blocage sera retiré et le logement sera de nouveau libre.`, confirmLabel: 'Oui, libérer', cancelLabel: 'Non, le garder', danger: true }))) return
+    } else if (!(await confirm({ title: 'Supprimer cette réservation ?', message: msg, confirmLabel: 'Oui, supprimer', cancelLabel: 'Non, la garder', danger: true }))) return
 
     if (b.status !== 'annulee' && Number(b.advance) > 0) {
       const sure = await confirm({
@@ -89,7 +105,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
       }
       return toast(`La suppression n'a pas pu être faite : ${error.message}`, 'error')
     }
-    toast('La réservation a été supprimée.')
+    toast(isHold(b) ? 'Le logement est de nouveau libre.' : 'La réservation a été supprimée.')
     reload()
   }
 
@@ -97,7 +113,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
     const remaining = Number(b.total_amount) - Number(b.advance)
     const ok = await confirm({
       title: 'Encaisser le solde ?',
-      message: `${b.clients.first_name} ${b.clients.last_name} a payé les ${fcfa(remaining)} qui restaient ?\n\nLa réservation sera marquée comme entièrement payée.`,
+      message: `${clientName(b)} a payé les ${fcfa(remaining)} qui restaient ?\n\nLa réservation sera marquée comme entièrement payée.`,
       confirmLabel: 'Oui, solde encaissé',
     })
     if (!ok) return
@@ -164,13 +180,19 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
           const total = Number(b.total_amount)
           const advance = Number(b.advance)
           const rest = total - advance
+          const hold = isHold(b)
 
           return (
-            <li key={b.id} className={`card space-y-4 ${stage === 'annulee' ? 'opacity-60' : ''}`}>
+            <li key={b.id} id={`res-${b.id}`} className={`card space-y-4 transition ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-slate-900">{b.clients.first_name} {b.clients.last_name}</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{clientName(b)}</h3>
                   <p className="text-sm font-semibold text-salam-700">{b.units.name}</p>
+                  {(hold || b.broker_id) && (
+                    <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                      <Handshake size={12} /> {hold ? 'Client à préciser' : `Via ${b.broker_name || 'un courtier'}`}
+                    </p>
+                  )}
                   {b.legacy && (
                     <p className="mt-1 w-fit rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                       Ancienne réservation{b.note ? ` · ${b.note}` : ''}
@@ -189,6 +211,11 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                   </p>
                   <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
                 </div>
+                {hold ? (
+                  <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2 lg:col-span-3">
+                    Le logement est gardé pour {b.broker_name || 'le courtier'}. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> quand il est connu.
+                  </p>
+                ) : (<>
                 <div>
                   <p className="text-xs text-slate-500">Montant total</p>
                   <p className="font-semibold">{fcfa(total)}</p>
@@ -206,6 +233,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                     <p className="text-lg font-extrabold text-emerald-700">✓ Tout est payé</p>
                   )}
                 </div>
+                </>)}
               </div>
 
               {(b.checked_in_at || b.checked_out_at) && (
@@ -229,10 +257,10 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
 
               <div className="section-divider">
                 <div className="flex flex-wrap items-center gap-2">
-                  {stage === 'encours' && !b.legacy && !b.checked_in_at && (
+                  {stage === 'encours' && !b.legacy && !hold && !b.checked_in_at && (
                     <button className="btn btn-success" onClick={() => arrive(b)}><LogIn size={16} /> Client arrivé</button>
                   )}
-                  {stage !== 'annulee' && !b.legacy && b.checked_in_at && !b.checked_out_at && (
+                  {stage !== 'annulee' && !b.legacy && !hold && b.checked_in_at && !b.checked_out_at && (
                     <button className="btn btn-secondary" onClick={() => leave(b)}><LogOut size={16} /> Client parti</button>
                   )}
                   {stage !== 'annulee' && (
@@ -244,16 +272,16 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                           window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
                       >
-                        <Pencil size={16} /> Modifier
+                        {hold ? <><UserPlus size={16} /> Ajouter le client</> : <><Pencil size={16} /> Modifier</>}
                       </button>
 
-                      {rest > 0 && (
+                      {!hold && rest > 0 && (
                         <button className="btn btn-success" onClick={() => settle(b)}>
                           <Banknote size={16} /> Encaisser le solde
                         </button>
                       )}
 
-                      {!b.legacy && (
+                      {!b.legacy && !hold && (
                         <>
                           <button className="btn btn-secondary" onClick={() => openInvoice(b)}>
                             <FileText size={16} /> Facture
@@ -267,13 +295,13 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                   )}
 
                   <div className="ml-auto flex flex-wrap gap-2">
-                    {stage !== 'annulee' && (
+                    {stage !== 'annulee' && !hold && (
                       <button className="btn btn-danger" onClick={() => cancel(b)} aria-label="Annuler la réservation">
                         <Ban size={16} /> Annuler
                       </button>
                     )}
-                    <button className="btn btn-danger" onClick={() => remove(b)} aria-label="Supprimer la réservation">
-                      <Trash2 size={16} /> {stage === 'annulee' ? 'Supprimer définitivement' : 'Supprimer'}
+                    <button className="btn btn-danger" onClick={() => remove(b)} aria-label={hold ? 'Libérer le logement' : 'Supprimer la réservation'}>
+                      {hold ? <><Unlock size={16} /> Libérer le logement</> : <><Trash2 size={16} /> {stage === 'annulee' ? 'Supprimer définitivement' : 'Supprimer'}</>}
                     </button>
                   </div>
                 </div>

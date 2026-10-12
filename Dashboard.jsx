@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, isActive, stageOf, STAGE } from './utils'
-import { Field, PageHeader, Section, Stat, Badge, Empty, useNotify } from './ui'
-import { MonthCalendar, DayPanel, UnitTimeline } from './Calendrier'
+import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, clientName } from './utils'
+import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
+import { MonthCalendar, DayPanel } from './Calendrier'
+import Planning, { BookingSheet } from './Planning'
+import BookingForm from './BookingForm'
 import { longDate } from './calendar'
 import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
@@ -52,7 +54,7 @@ function DayHistory({ bookings, expenses }) {
               <div className="min-w-0 flex-1">
                 <p className="flex items-start gap-1 font-semibold">
                   {x.out ? <LogOut size={14} className="mt-0.5 shrink-0 text-amber-600" /> : <LogIn size={14} className="mt-0.5 shrink-0 text-emerald-600" />}
-                  <span className="min-w-0 break-words">{x.out ? 'Départ' : 'Arrivée'} — {x.s.units?.name} · {x.s.clients?.first_name} {x.s.clients?.last_name}</span>
+                  <span className="min-w-0 break-words">{x.out ? 'Départ' : 'Arrivée'} — {x.s.units?.name} · {clientName(x.s)}</span>
                 </p>
                 <p className="text-xs text-slate-500">Séjour du {fdate(x.s.check_in)} au {fdate(x.s.check_out)}</p>
               </div>
@@ -60,7 +62,7 @@ function DayHistory({ bookings, expenses }) {
               <>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-start gap-1 font-semibold"><CalendarPlus size={14} className="mt-0.5 shrink-0 text-salam-600" />
-                    <span className="min-w-0 break-words">Réservation — {x.b.units?.name} · {x.b.clients?.first_name} {x.b.clients?.last_name}</span>
+                    <span className="min-w-0 break-words">Réservation — {x.b.units?.name} · {clientName(x.b)}</span>
                   </p>
                   <p className="text-xs text-slate-500">
                     Du {fdate(x.b.check_in)} au {fdate(x.b.check_out)} · {x.b.nights} nuit{x.b.nights > 1 ? 's' : ''} · avance {fcfa(x.b.advance)}
@@ -134,7 +136,7 @@ function PastBookings({ bookings }) {
           return (
             <li key={b.id} className="card flex items-center justify-between gap-3 !p-3">
               <div className="min-w-0">
-                <p className="truncate font-semibold">{b.units?.name} — {b.clients?.first_name} {b.clients?.last_name}</p>
+                <p className="truncate font-semibold">{b.units?.name} — {clientName(b)}</p>
                 <p className="text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}{b.note ? ` · ${b.note}` : ''}</p>
               </div>
               <div className="shrink-0 space-y-0.5 text-right">
@@ -156,15 +158,37 @@ function PastBookings({ bookings }) {
   )
 }
 
-export default function Dashboard({ data, reload, goNew }) {
+export default function Dashboard({ data, reload, goNew, goBooking }) {
   const { units, bookings, expenses } = data
-  const { toast } = useNotify()
+  const { toast, confirm } = useNotify()
   const { arrive, leave } = useStayActions(reload)
   const t = today()
   const month = t.slice(0, 7)
   const live = bookings.filter((b) => b.status !== 'annulee')
   const [day, setDay] = useState(t)
-  const [view, setView] = useState('mois')
+  const [view, setView] = useState('planning')
+  const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
+  const [sheetId, setSheetId] = useState(null)
+  const sheet = sheetId ? bookings.find((b) => b.id === sheetId) : null
+
+  const startNew = (date, unit_id) => { setSheetId(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+
+  // Libère un logement bloqué par un courtier (aucun argent en jeu)
+  const release = async (b) => {
+    const ok = await confirm({
+      title: 'Libérer ce logement ?',
+      message: `${clientName(b)} — ${b.units?.name}, du ${fdate(b.check_in)} au ${fdate(b.check_out)}.\n\nLe blocage sera retiré et le logement sera de nouveau libre.`,
+      confirmLabel: 'Oui, libérer',
+      cancelLabel: 'Non, le garder',
+      danger: true,
+    })
+    if (!ok) return
+    const { error } = await supabase.from('bookings').delete().eq('id', b.id)
+    if (error) return toast(`Le logement n'a pas pu être libéré : ${error.message}`, 'error')
+    setSheetId(null)
+    toast('Le logement est de nouveau libre.')
+    reload()
+  }
 
   // Total des réservations = montant total des réservations non annulées dont l'arrivée tombe dans le mois
   const revenue = live.filter((b) => b.check_in.startsWith(month)).reduce((s, b) => s + Number(b.total_amount), 0)
@@ -189,8 +213,63 @@ export default function Dashboard({ data, reload, goNew }) {
   return (
     <div className="space-y-8">
       <PageHeader title="Accueil" subtitle={`Aujourd'hui : ${longDate(t)}`}>
-        <button className="btn btn-primary btn-lg" onClick={() => goNew()}><Plus size={18} /> Nouvelle réservation</button>
+        <button className="btn btn-primary btn-lg" onClick={() => startNew()}><Plus size={18} /> Nouvelle réservation</button>
       </PageHeader>
+
+      {form && (
+        <Modal label={form.booking ? 'Modifier la réservation' : 'Nouvelle réservation'} onClose={() => setForm(null)}>
+          <BookingForm
+            key={form.booking ? form.booking.id : `new-${form.date}-${form.unit_id}`}
+            booking={form.booking}
+            initialDate={form.date}
+            initialUnit={form.unit_id}
+            units={units}
+            clients={data.clients}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setForm(null)}
+            onDone={(_id, info) => {
+              toast(form.booking ? 'Les modifications ont été enregistrées.' : info?.hold ? 'Le logement est bloqué pour le courtier.' : 'La réservation a été enregistrée.')
+              setForm(null)
+              reload()
+            }}
+          />
+        </Modal>
+      )}
+
+      {sheet && !form && (
+        <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
+          <BookingSheet
+            b={sheet}
+            onEdit={(b) => { setSheetId(null); setForm({ booking: b }) }}
+            onDetails={(b) => goBooking(b.id)}
+            onRelease={release}
+            onArrive={arrive}
+            onLeave={leave}
+          />
+        </Modal>
+      )}
+
+      <Section
+        title={view === 'planning' ? 'Planning des logements' : 'Calendrier des réservations'}
+        hint={view === 'planning' ? 'Qui occupe quel logement, jour par jour.' : 'Les arrivées sont en vert, les départs en orange.'}
+        action={
+          <div className="flex gap-2">
+            {[['planning', 'Planning des logements'], ['mois', 'Calendrier du mois']].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
+            ))}
+          </div>
+        }
+      >
+        {view === 'planning' ? (
+          <Planning units={units} bookings={bookings} onFree={(u, d) => startNew(d, u.id)} onOpen={(b) => setSheetId(b.id)} />
+        ) : (
+          <>
+            <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
+            <DayPanel bookings={bookings} day={day} onNew={(d) => startNew(d)} onArrive={arrive} onLeave={leave} />
+          </>
+        )}
+      </Section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Total des réservations du mois" value={fcfa(revenue)} Icon={Wallet} tone="green" />
@@ -200,23 +279,6 @@ export default function Dashboard({ data, reload, goNew }) {
         <Stat label="Logements occupés aujourd'hui" value={`${occupied} sur ${units.length}`} Icon={BedDouble} tone="gold" />
         <Stat label="Reste à encaisser" value={fcfa(due)} hint="Sommes pas encore payées par les clients" Icon={Banknote} tone={due > 0 ? 'red' : 'green'} />
       </div>
-
-      <Section
-        title="Calendrier des réservations"
-        hint="Les arrivées sont en vert, les départs en orange."
-        action={
-          <div className="flex gap-2">
-            {[['mois', 'Calendrier du mois'], ['logement', 'Occupation par logement']].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
-            ))}
-          </div>
-        }
-      >
-        {view === 'mois'
-          ? <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
-          : <UnitTimeline units={units} bookings={bookings} selected={day} onSelect={setDay} />}
-        <DayPanel bookings={bookings} day={day} onNew={goNew} onArrive={arrive} onLeave={leave} />
-      </Section>
 
       <Section title={`Logements (${occupied} occupé${occupied > 1 ? 's' : ''} sur ${units.length})`}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -239,7 +301,7 @@ export default function Dashboard({ data, reload, goNew }) {
                 <Badge className={BADGE[s]}>{LABEL[s]}</Badge>
                 {b && (
                   <div className="text-xs text-slate-600">
-                    <p className="truncate font-medium">{b.clients?.first_name} {b.clients?.last_name}</p>
+                    <p className="truncate font-medium">{clientName(b)}</p>
                     <p>jusqu'au {fdate(b.check_out)}</p>
                   </div>
                 )}

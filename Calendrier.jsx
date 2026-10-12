@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, LogIn, LogOut, BedDouble, Plus } from 'lucide-react'
-import { fcfa, today, addDays, isActive } from './utils'
-import { WEEKDAYS, monthGrid, monthOf, shiftMonth, monthTitle, dayEvents, weekdayName, longDate, shortDate } from './calendar'
-import { Badge } from './ui'
+import { fcfa, today, clientName, isHold } from './utils'
+import { WEEKDAYS, monthGrid, monthOf, shiftMonth, monthTitle, dayEvents, longDate, shortDate } from './calendar'
 import { dakarTime } from './stay'
 
-const who = (b) => `${b.clients?.last_name ?? ''} ${b.clients?.first_name ?? ''}`.trim()
+const who = clientName
+const short = (b) => (b.clients ? b.clients.last_name : `${b.broker_name || 'Courtier'} (client ?)`)
 
 // ---------- Calendrier du mois ----------
 export function MonthCalendar({ bookings, selected, onSelect }) {
@@ -70,13 +70,13 @@ export function MonthCalendar({ bookings, selected, onSelect }) {
                 {ev.arrivals.slice(0, 2).map((b) => (
                   <span key={`a${b.id}`} className="flex items-center gap-1 truncate rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-900">
                     <LogIn size={10} className="shrink-0" />
-                    <span className="truncate">{b.units?.name} · {b.clients?.last_name}</span>
+                    <span className="truncate">{b.units?.name} · {short(b)}</span>
                   </span>
                 ))}
                 {ev.departures.slice(0, 2).map((b) => (
                   <span key={`d${b.id}`} className="flex items-center gap-1 truncate rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">
                     <LogOut size={10} className="shrink-0" />
-                    <span className="truncate">{b.units?.name} · {b.clients?.last_name}</span>
+                    <span className="truncate">{b.units?.name} · {short(b)}</span>
                   </span>
                 ))}
                 {extra > 0 && <span className="px-1 text-[11px] font-medium text-slate-500">+ {extra} autre{extra > 1 ? 's' : ''}</span>}
@@ -120,7 +120,9 @@ function DayList({ title, Icon, rows, tone, actions }) {
                 <p className="font-semibold">{b.units?.name} — {who(b)}</p>
                 <p className="text-xs text-slate-500">
                   {shortDate(b.check_in)} → {shortDate(b.check_out)}
-                  {rest > 0 ? <span className="font-medium text-red-700"> · reste à payer {fcfa(rest)}</span> : <span className="text-emerald-700"> · soldé</span>}
+                  {isHold(b)
+                    ? <span className="font-medium text-amber-700"> · client à préciser</span>
+                    : rest > 0 ? <span className="font-medium text-red-700"> · reste à payer {fcfa(rest)}</span> : <span className="text-emerald-700"> · soldé</span>}
                 </p>
                 {(b.checked_in_at || b.checked_out_at) && (
                   <p className="mt-0.5 text-xs font-medium text-salam-700">
@@ -144,10 +146,10 @@ export function DayPanel({ bookings, day, onNew, onArrive, onLeave }) {
   const isPast = day < today()
   const isToday = day === today()
   // Les heures d'arrivée et de départ ne s'enregistrent que le jour même
-  const arriveBtn = (b) => isToday && onArrive && !b.legacy && b.check_in === day && !b.checked_in_at && (
+  const arriveBtn = (b) => isToday && onArrive && !b.legacy && !isHold(b) && b.check_in === day && !b.checked_in_at && (
     <button type="button" className="btn btn-success" onClick={() => onArrive(b)}><LogIn size={14} /> Client arrivé</button>
   )
-  const leaveBtn = (b) => isToday && onLeave && !b.legacy && b.checked_in_at && !b.checked_out_at && (
+  const leaveBtn = (b) => isToday && onLeave && !b.legacy && !isHold(b) && b.checked_in_at && !b.checked_out_at && (
     <button type="button" className="btn btn-secondary" onClick={() => onLeave(b)}><LogOut size={14} /> Client parti</button>
   )
   return (
@@ -169,78 +171,6 @@ export function DayPanel({ bookings, day, onNew, onArrive, onLeave }) {
         <DayList title="Arrivées" Icon={LogIn} rows={ev.arrivals} tone="text-emerald-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
         <DayList title="Départs" Icon={LogOut} rows={ev.departures} tone="text-amber-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
         <DayList title="Déjà sur place" Icon={BedDouble} rows={ev.staying} tone="text-salam-600" actions={(b) => <>{arriveBtn(b)}{leaveBtn(b)}</>} />
-      </div>
-    </div>
-  )
-}
-
-// ---------- Occupation par logement (14 jours) ----------
-export function UnitTimeline({ units, bookings, selected, onSelect }) {
-  const t = today()
-  const [start, setStart] = useState(t)
-  const days = Array.from({ length: 14 }, (_, i) => addDays(start, i))
-
-  return (
-    <div className="card p-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-        <h3 className="text-base font-bold">Du {shortDate(days[0])} au {shortDate(days[13])}</h3>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn btn-secondary" onClick={() => setStart(addDays(start, -7))}><ChevronLeft size={16} /> Semaine précédente</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setStart(t)}>Aujourd'hui</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setStart(addDays(start, 7))}>Semaine suivante <ChevronRight size={16} /></button>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse text-xs">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 w-36 bg-white p-2 text-left font-semibold text-slate-600">Logement</th>
-              {days.map((d) => (
-                <th
-                  key={d}
-                  onClick={() => onSelect?.(d)}
-                  className={`cursor-pointer border-l border-slate-100 p-1 text-center font-medium ${d === t ? 'bg-salam-50 text-salam-700' : 'text-slate-500'} ${d === selected ? 'ring-2 ring-inset ring-salam-600' : ''}`}
-                >
-                  <span className="block text-[10px] uppercase">{weekdayName(d).slice(0, 3)}</span>
-                  <span className="block text-sm font-bold text-slate-800">{Number(d.slice(8))}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {units.map((u) => {
-              const cells = []
-              for (let i = 0; i < days.length; ) {
-                const d = days[i]
-                const b = bookings.find((x) => x.unit_id === u.id && isActive(x, d))
-                if (b) {
-                  let span = 1
-                  while (i + span < days.length && isActive(b, days[i + span])) span++
-                  cells.push(
-                    <td key={d} colSpan={span} className="border-l border-slate-100 p-0.5">
-                      <div className="truncate rounded-md bg-salam-600 px-2 py-1.5 text-[11px] font-medium text-white" title={`${who(b)} — ${shortDate(b.check_in)} → ${shortDate(b.check_out)}`}>
-                        {who(b)}
-                      </div>
-                    </td>
-                  )
-                  i += span
-                } else {
-                  cells.push(<td key={d} className={`h-9 border-l border-slate-100 ${u.status === 'maintenance' ? 'bg-amber-100' : d === t ? 'bg-salam-50/60' : ''}`} />)
-                  i++
-                }
-              }
-              return (
-                <tr key={u.id} className="border-t border-slate-100">
-                  <td className="sticky left-0 z-10 whitespace-nowrap bg-white p-2 font-semibold text-slate-800">
-                    {u.name}
-                    {u.status === 'maintenance' && <Badge className="ml-2 bg-amber-100 text-amber-800">Maintenance</Badge>}
-                  </td>
-                  {cells}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
       </div>
     </div>
   )
