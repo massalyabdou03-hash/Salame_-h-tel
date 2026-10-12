@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus } from 'lucide-react'
+import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
@@ -243,13 +243,14 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
       {quick && (
         <Modal label="Écrire sur le planning" onClose={() => setQuick(null)} width="max-w-md">
           <QuickNote
-            key={quick.booking ? quick.booking.id : `${quick.unit.id}-${quick.date}`}
+            key={quick.booking ? quick.booking.id : `${quick.unit?.id || 'pick'}-${quick.date}`}
             unit={quick.unit}
+            units={units}
             date={quick.date}
             booking={quick.booking}
             bookings={bookings}
             onCancel={() => setQuick(null)}
-            onMore={() => startNew(quick.date, quick.unit.id)}
+            onMore={() => startNew(quick.date, quick.unit?.id)}
             onDone={(edited) => { toast(edited ? 'Les modifications ont été enregistrées.' : 'C\'est noté sur le planning.'); setQuick(null); reload() }}
           />
         </Modal>
@@ -273,13 +274,18 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         title={view === 'planning' ? 'Planning des logements' : 'Calendrier des réservations'}
         hint={view === 'planning' ? 'Qui occupe quel logement, jour par jour.' : 'Les arrivées sont en vert, les départs en orange.'}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[['planning', 'Planning des logements'], ['mois', 'Calendrier du mois']].map(([id, label]) => (
               <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
             ))}
           </div>
         }
       >
+        {view === 'planning' && (
+          <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={() => setQuick({ unit: null, date: t })}>
+            <Pencil size={18} /> Écrire sur le planning
+          </button>
+        )}
         {view === 'planning' ? (
           <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
         ) : (

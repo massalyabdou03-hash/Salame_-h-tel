@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { supabase } from './supabase'
-import { PAY_MODES, addDays, nightsBetween, fdate } from './utils'
+import { PAY_MODES, addDays, nightsBetween, fdate, today } from './utils'
 import { longDate } from './calendar'
 
 // Écriture directe sur le planning : on appuie sur une case vide, on écrit quelques mots
 // (nom du client, du courtier, une remarque), on choisit le nombre de nuits, et c'est noté.
 // Les détails (client, prix) se complètent plus tard.
-export default function QuickNote({ unit, date, bookings, booking, onDone, onMore, onCancel }) {
+export default function QuickNote({ unit: unitProp, units = [], date, bookings, booking, onDone, onMore, onCancel }) {
   const editing = Boolean(booking)
-  const start = editing ? booking.check_in : date
+  // Sans case touchée (bouton « Écrire sur le planning »), on choisit le logement et le jour ici
+  const picking = !unitProp && !editing
+  const [pickUnit, setPickUnit] = useState('')
+  const [pickDate, setPickDate] = useState(date || today())
+  const unit = picking ? units.find((u) => String(u.id) === pickUnit) : unitProp
+  const start = editing ? booking.check_in : picking ? pickDate : date
   const [text, setText] = useState(editing ? booking.note || '' : '')
   const [nights, setNights] = useState(editing ? booking.nights : 1)
   const [err, setErr] = useState('')
@@ -17,15 +22,17 @@ export default function QuickNote({ unit, date, bookings, booking, onDone, onMor
 
   // On ne peut pas aller au-delà de la prochaine réservation du même logement
   const next = bookings
-    .filter((b) => b.status !== 'annulee' && b.unit_id === unit.id && b.id !== booking?.id && b.check_in > start)
+    .filter((b) => b.status !== 'annulee' && b.unit_id === unit?.id && b.id !== booking?.id && b.check_in > start)
     .map((b) => b.check_in)
     .sort()[0]
   const max = next ? nightsBetween(start, next) : 60
-  const end = addDays(start, nights)
+  const end = start ? addDays(start, nights) : ''
 
   const submit = async (e) => {
     e.preventDefault()
     const note = text.trim()
+    if (!unit) return setErr('Choisissez le logement.')
+    if (!start || start < today()) return setErr('Choisissez un jour à partir d\'aujourd\'hui.')
     if (!note) return setErr('Écrivez quelques mots : un nom, un courtier, une remarque…')
     setErr('')
     setBusy(true)
@@ -50,16 +57,32 @@ export default function QuickNote({ unit, date, bookings, booking, onDone, onMor
   return (
     <form onSubmit={submit} className="card space-y-4 !p-6">
       <div className="pr-10">
-        <p className="text-sm font-semibold text-salam-700">{unit.name}</p>
-        <h2 className="text-lg font-extrabold text-slate-900">{editing ? 'Modifier ce qui est écrit' : 'Écrire sur cette date'}</h2>
-        <p className="text-sm text-slate-500">À partir du {longDate(start)}</p>
+        {unit && <p className="text-sm font-semibold text-salam-700">{unit.name}</p>}
+        <h2 className="text-lg font-extrabold text-slate-900">{editing ? 'Modifier ce qui est écrit' : picking ? 'Écrire sur le planning' : 'Écrire sur cette date'}</h2>
+        {!picking && <p className="text-sm text-slate-500">À partir du {longDate(start)}</p>}
       </div>
+
+      {picking && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">Logement</span>
+            <select className="input" value={pickUnit} onChange={(e) => { setPickUnit(e.target.value); setNights(1) }}>
+              <option value="">Choisir…</option>
+              {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance'}>{u.name}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">Jour d'arrivée</span>
+            <input className="input" type="date" min={today()} value={pickDate} onChange={(e) => { setPickDate(e.target.value); setNights(1) }} />
+          </label>
+        </div>
+      )}
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-slate-700">Écrivez ici</span>
         <input
           className="input"
-          autoFocus
+          autoFocus={!picking}
           maxLength={80}
           enterKeyHint="done"
           placeholder="Ex. Mamadou Diallo, ou courtier Awa"
@@ -84,7 +107,7 @@ export default function QuickNote({ unit, date, bookings, booking, onDone, onMor
         <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
         <button type="button" className="btn btn-secondary btn-lg" onClick={onCancel}>Annuler</button>
       </div>
-      {!editing && (
+      {!editing && !picking && (
         <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={onMore}>
           Plus de détails (client, prix, courtier…)
         </button>

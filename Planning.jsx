@@ -7,7 +7,7 @@ import { dakarDate, dakarTime } from './stay'
 
 const INITIALS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const LABEL_W = '7.5rem'
-const CELL_W = '1.8rem'
+const CELL_W = '2.25rem'
 
 const daysOfMonth = (month) => {
   const first = `${month}-01`
