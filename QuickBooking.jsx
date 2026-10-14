@@ -23,7 +23,13 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
   const [start, setStart] = useState(editing ? booking.check_in : prefill?.check_in || date || today())
   const [nights, setNights] = useState(editing ? booking.nights : prefill?.check_in && prefill?.check_out ? Math.max(1, nightsBetween(prefill.check_in, prefill.check_out)) : 1)
   const [name, setName] = useState(editing ? (hasClient ? cl?.last_name || '' : jotted ? booking.note || '' : '') : prefill?.last_name || '')
-  const [amount, setAmount] = useState(editing ? (Number(booking.total_amount) > 0 ? String(booking.total_amount) : '') : prefill?.total ? String(prefill.total) : '')
+  // Montant : vide = calculé automatiquement avec le prix par nuit du logement (Réglages) ; une valeur saisie le remplace
+  const [amount, setAmount] = useState(() => {
+    if (!editing) return prefill?.total ? String(prefill.total) : ''
+    const stored = Number(booking.total_amount)
+    const auto = booking.nights * Number(units.find((u) => u.id === booking.unit_id)?.price_per_night || 0)
+    return stored > 0 && stored !== auto ? String(stored) : ''
+  })
   const [brokerId, setBrokerId] = useState(editing && booking.broker_id ? String(booking.broker_id) : '')
   const [commission, setCommission] = useState(editing && Number(booking.commission_amount) > 0 ? String(booking.commission_amount) : '')
   const [newBroker, setNewBroker] = useState(null) // null = fermé ; sinon le nom en cours de saisie
@@ -51,7 +57,8 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     .sort()[0]
   const max = next ? nightsBetween(start, next) : 60
   const end = start ? addDays(start, nights) : ''
-  const byDefault = nights * Number(unit?.price_per_night || 0)
+  const price = Number(unit?.price_per_night || 0)
+  const byDefault = nights * price
   const total = amount !== '' ? Number(amount) : byDefault
 
   const addBroker = async () => {
@@ -155,8 +162,13 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
           </select>
         </Field>
         {!isHold && (
-          <Field label="Montant (FCFA)">
-            <input className="input" type="number" inputMode="numeric" min="0" placeholder={byDefault > 0 ? String(byDefault) : ''} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <Field
+            label="Montant (FCFA)"
+            hint={!unit ? undefined
+              : amount === '' ? (price > 0 ? `Prix du logement : ${fcfa(price)} × ${nights} nuit${nights > 1 ? 's' : ''}` : 'Prix par nuit pas encore réglé pour ce logement (Réglages)')
+                : price > 0 && Number(amount) !== byDefault ? `Prix modifié (tarif du logement : ${fcfa(byDefault)})` : undefined}
+          >
+            <input className="input" type="number" inputMode="numeric" min="0" value={amount !== '' ? amount : byDefault > 0 ? String(byDefault) : ''} onChange={(e) => setAmount(e.target.value)} />
           </Field>
         )}
       </div>

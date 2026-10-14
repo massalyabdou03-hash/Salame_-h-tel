@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, LogIn, LogOut, BedDouble, Plus } from 'lucide-react'
-import { fcfa, today, clientName, isHold } from './utils'
+import { fcfa, today, clientName, isHold, sourceOf, SOURCE } from './utils'
 import { WEEKDAYS, monthGrid, monthOf, shiftMonth, monthTitle, dayEvents, longDate, shortDate } from './calendar'
 import { dakarTime } from './stay'
 
@@ -68,13 +68,13 @@ export function MonthCalendar({ bookings, selected, onSelect }) {
               {/* Grand écran : une ligne par arrivée / départ */}
               <span className="hidden min-w-0 flex-col gap-0.5 sm:flex">
                 {ev.arrivals.slice(0, 2).map((b) => (
-                  <span key={`a${b.id}`} className="flex items-center gap-1 truncate rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-900">
+                  <span key={`a${b.id}`} className={`flex items-center gap-1 truncate rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-900 ${SOURCE[sourceOf(b)].bar}`}>
                     <LogIn size={10} className="shrink-0" />
                     <span className="truncate">{b.units?.name} · {short(b)}</span>
                   </span>
                 ))}
                 {ev.departures.slice(0, 2).map((b) => (
-                  <span key={`d${b.id}`} className="flex items-center gap-1 truncate rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">
+                  <span key={`d${b.id}`} className={`flex items-center gap-1 truncate rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 ${SOURCE[sourceOf(b)].bar}`}>
                     <LogOut size={10} className="shrink-0" />
                     <span className="truncate">{b.units?.name} · {short(b)}</span>
                   </span>
@@ -93,6 +93,8 @@ export function MonthCalendar({ bookings, selected, onSelect }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
+        <span className="flex items-center gap-1.5"><span className={`h-3 w-1 rounded-sm ${SOURCE.direct.dot}`} /> Client direct</span>
+        <span className="flex items-center gap-1.5"><span className={`h-3 w-1 rounded-sm ${SOURCE.courtier.dot}`} /> Pris par un courtier</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-200" /> Arrivée</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-amber-200" /> Départ</span>
         <span className="flex items-center gap-1.5"><span className="grid h-4 w-4 place-items-center rounded-full bg-salam-700 text-[9px] font-bold text-white">1</span> Aujourd'hui</span>
@@ -116,7 +118,7 @@ function DayList({ title, Icon, rows, tone, actions }) {
           {rows.map((b) => {
             const rest = Number(b.total_amount) - Number(b.advance)
             return (
-              <li key={b.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+              <li key={b.id} className={`rounded-xl bg-slate-50 px-3 py-2 text-sm ${SOURCE[sourceOf(b)].bar}`}>
                 <p className="font-semibold">{b.units?.name} — {who(b)}</p>
                 <p className="text-xs text-slate-500">
                   {shortDate(b.check_in)} → {shortDate(b.check_out)}

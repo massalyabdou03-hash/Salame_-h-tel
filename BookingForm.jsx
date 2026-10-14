@@ -40,7 +40,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
     ? { last_name: booking.clients.last_name || '', first_name: booking.clients.first_name || '', phone: known(booking.clients.phone) ? booking.clients.phone : '', id_number: known(booking.clients.id_number) ? booking.clients.id_number : '' }
     : { last_name: prefill?.last_name || '', first_name: prefill?.first_name || '', phone: prefill?.phone || '', id_number: '' })
   const [f, setF] = useState(editing
-    ? { unit_id: String(booking.unit_id), check_in: booking.check_in, check_out: booking.check_out, payment_mode: booking.payment_mode, advance: String(booking.advance), total: holdEdit ? '' : String(booking.total_amount) }
+    ? { unit_id: String(booking.unit_id), check_in: booking.check_in, check_out: booking.check_out, payment_mode: booking.payment_mode, advance: String(booking.advance), total: holdEdit || Number(booking.total_amount) === booking.nights * Number(units.find((u) => u.id === booking.unit_id)?.price_per_night || 0) ? '' : String(booking.total_amount) }
     : prefill
       ? { unit_id: prefill.unit_id || '', check_in: prefill.check_in, check_out: prefill.check_out, payment_mode: PAY_MODES[0], advance: prefill.advance || '0', total: prefill.total || '' }
       : { unit_id: initialUnit ? String(initialUnit) : '', check_in: startDay, check_out: addDays(startDay, 1), payment_mode: PAY_MODES[0], advance: '0', total: '' })
@@ -311,7 +311,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
             <select className="input" value={f.payment_mode} onChange={set('payment_mode')}>{PAY_MODES.map((m) => <option key={m}>{m}</option>)}</select>
           </Field>
           <Field label={`Montant total (${nights} nuit${nights > 1 ? 's' : ''})`}>
-            <input className="input" type="number" min="0" placeholder={String(nights * Number(unit?.price_per_night || 0))} value={f.total} onChange={set('total')} />
+            <input className="input" type="number" min="0" value={f.total !== '' ? f.total : nights * Number(unit?.price_per_night || 0) > 0 ? String(nights * Number(unit?.price_per_night || 0)) : ''} onChange={set('total')} />
           </Field>
           <Field label="Avance versée"><input className="input" type="number" min="0" value={f.advance} onChange={set('advance')} /></Field>
         </div>

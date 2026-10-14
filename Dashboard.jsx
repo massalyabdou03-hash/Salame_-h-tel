@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
+import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
 import { MonthCalendar, DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
@@ -383,7 +383,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
                 <Badge className={BADGE[s]}>{LABEL[s]}</Badge>
                 {b && (
                   <div className="text-xs text-slate-600">
-                    <p className="truncate font-medium">{clientName(b)}</p>
+                    <p className="flex items-center gap-1.5 font-medium"><span className={`h-2 w-2 shrink-0 rounded-full ${SOURCE[sourceOf(b)].dot}`} /><span className="truncate">{clientName(b)}</span></p>
                     <p>jusqu'au {fdate(b.check_out)}</p>
                   </div>
                 )}
