@@ -8,6 +8,7 @@ import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
 import QuickNote from './QuickNote'
 import QuickBooking from './QuickBooking'
+import { UnitSheet } from './UnitSheet'
 import { longDate } from './calendar'
 import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
@@ -171,11 +172,17 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
   const [view, setView] = useState('planning')
   const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
   const [sheetId, setSheetId] = useState(null)
+  const [unitId, setUnitId] = useState(null) // fiche d'un logement, ouverte en touchant sa carte
+  const unitOpen = unitId ? units.find((u) => u.id === unitId) : null
   const sheet = sheetId ? bookings.find((b) => b.id === sheetId) : null
 
   const [quick, setQuick] = useState(null) // écriture directe : { unit, date } ou { unit, booking } pour corriger
 
-  const startNew = (date, unit_id) => { setSheetId(null); setQuick(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+  const [qedit, setQedit] = useState(null) // modification d'une réservation avec le formulaire rapide
+  // Formulaire rapide partout ; le formulaire complet (client déjà enregistré…) s'ouvre depuis un lien
+  const startNew = (date, unit_id) => { setSheetId(null); setForm(null); setQedit(null); setQuick({ unit: units.find((u) => u.id === unit_id) || null, date: date || t }) }
+  const openFull = (date, unit_id) => { setSheetId(null); setQuick(null); setQedit(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+  const editBooking = (b) => { setSheetId(null); if (b.legacy) setForm({ booking: b }); else setQedit(b) }
 
   // Libère un logement bloqué par un courtier (aucun argent en jeu)
   const release = async (b) => {
@@ -252,7 +259,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             brokers={data.brokers}
             reloadBrokers={reload}
             onCancel={() => setQuick(null)}
-            onMore={() => startNew(quick.date, quick.unit?.id)}
+            onMore={() => openFull(quick.date, quick.unit?.id)}
             onDone={() => { toast('La réservation a été enregistrée.'); setQuick(null); reload() }}
           />
         </Modal>
@@ -268,17 +275,44 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             booking={quick.booking}
             bookings={bookings}
             onCancel={() => setQuick(null)}
-            onMore={() => startNew(quick.date, quick.unit?.id)}
+            onMore={() => openFull(quick.date, quick.unit?.id)}
             onDone={(edited) => { toast(edited ? 'Les modifications ont été enregistrées.' : 'C\'est noté sur le planning.'); setQuick(null); reload() }}
           />
         </Modal>
       )}
 
-      {sheet && !form && !quick && (
+      {qedit && (
+        <Modal label="Modifier la réservation" onClose={() => setQedit(null)} width="max-w-md">
+          <QuickBooking
+            key={qedit.id}
+            booking={qedit}
+            units={units}
+            bookings={bookings}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setQedit(null)}
+            onDone={() => { toast('Les modifications ont été enregistrées.'); setQedit(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {unitOpen && !form && !quick && !qedit && !sheet && (
+        <Modal label="Fiche du logement" onClose={() => setUnitId(null)} width="max-w-xl">
+          <UnitSheet
+            unit={unitOpen}
+            bookings={bookings}
+            onOpenBooking={(b) => { setUnitId(null); setSheetId(b.id) }}
+            onNew={(u) => { setUnitId(null); setQuick({ unit: u, date: t }) }}
+            onToggleMaintenance={async (u) => { await toggleMaintenance(u); setUnitId(null) }}
+          />
+        </Modal>
+      )}
+
+      {sheet && !form && !quick && !qedit && (
         <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
           <BookingSheet
             b={sheet}
-            onEdit={(b) => { setSheetId(null); setForm({ booking: b }) }}
+            onEdit={editBooking}
             onQuick={(b) => { setSheetId(null); setQuick({ unit: b.units, booking: b }) }}
             onDetails={(b) => goBooking(b.id)}
             onRelease={release}
@@ -329,9 +363,14 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             const s = statusOf(u)
             const b = current(u)
             return (
-              <div key={u.id} className="card flex flex-col gap-1.5 !p-4">
+              <div
+                key={u.id}
+                // Toucher la carte (hors bouton clé) ouvre la fiche du logement
+                onClick={(e) => { if (!e.target.closest('button')) setUnitId(u.id) }}
+                className="card flex cursor-pointer flex-col gap-1.5 !p-4 transition hover:border-salam-600/60"
+              >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold">{u.name}</p>
+                  <button type="button" className="text-left font-bold" onClick={() => setUnitId(u.id)} aria-label={`Ouvrir la fiche de ${u.name}`}>{u.name}</button>
                   <button
                     onClick={() => toggleMaintenance(u)}
                     disabled={s === 'occupe'}
