@@ -8,6 +8,7 @@ import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
 import QuickNote from './QuickNote'
 import QuickBooking from './QuickBooking'
+import { UnitSheet } from './UnitSheet'
 import { longDate } from './calendar'
 import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
@@ -171,6 +172,8 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
   const [view, setView] = useState('planning')
   const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
   const [sheetId, setSheetId] = useState(null)
+  const [unitId, setUnitId] = useState(null) // fiche d'un logement, ouverte en touchant sa carte
+  const unitOpen = unitId ? units.find((u) => u.id === unitId) : null
   const sheet = sheetId ? bookings.find((b) => b.id === sheetId) : null
 
   const [quick, setQuick] = useState(null) // écriture directe : { unit, date } ou { unit, booking } pour corriger
@@ -274,6 +277,18 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </Modal>
       )}
 
+      {unitOpen && !form && !quick && !sheet && (
+        <Modal label="Fiche du logement" onClose={() => setUnitId(null)} width="max-w-xl">
+          <UnitSheet
+            unit={unitOpen}
+            bookings={bookings}
+            onOpenBooking={(b) => { setUnitId(null); setSheetId(b.id) }}
+            onNew={(u) => { setUnitId(null); setQuick({ unit: u, date: t }) }}
+            onToggleMaintenance={async (u) => { await toggleMaintenance(u); setUnitId(null) }}
+          />
+        </Modal>
+      )}
+
       {sheet && !form && !quick && (
         <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
           <BookingSheet
@@ -329,9 +344,14 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             const s = statusOf(u)
             const b = current(u)
             return (
-              <div key={u.id} className="card flex flex-col gap-1.5 !p-4">
+              <div
+                key={u.id}
+                // Toucher la carte (hors bouton clé) ouvre la fiche du logement
+                onClick={(e) => { if (!e.target.closest('button')) setUnitId(u.id) }}
+                className="card flex cursor-pointer flex-col gap-1.5 !p-4 transition hover:border-salam-600/60"
+              >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold">{u.name}</p>
+                  <button type="button" className="text-left font-bold" onClick={() => setUnitId(u.id)} aria-label={`Ouvrir la fiche de ${u.name}`}>{u.name}</button>
                   <button
                     onClick={() => toggleMaintenance(u)}
                     disabled={s === 'occupe'}
