@@ -183,11 +183,11 @@ export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease
           <p className="font-semibold">{fdate(b.check_in)} → {fdate(b.check_out)}</p>
           <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
         </div>
-        {jotted ? (
+        {jotted && total === 0 ? (
           <div className="rounded-xl bg-salam-50 p-3 text-sm text-salam-800">
             Vous avez écrit ces mots sur le planning. Quand vous avez les informations du client, appuyez sur <b>Compléter la réservation</b>.
           </div>
-        ) : hold ? (
+        ) : hold && total === 0 ? (
           <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
             Le logement est gardé pour {b.broker_name || 'le courtier'}. Quand le client est connu, appuyez sur <b>Ajouter le client</b>.
           </div>
