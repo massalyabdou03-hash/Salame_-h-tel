@@ -7,6 +7,7 @@ import { MonthCalendar, DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
 import QuickNote from './QuickNote'
+import QuickBooking from './QuickBooking'
 import { longDate } from './calendar'
 import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
@@ -240,7 +241,24 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </Modal>
       )}
 
-      {quick && (
+      {quick && !quick.booking && (
+        <Modal label="Réservation rapide" onClose={() => setQuick(null)} width="max-w-md">
+          <QuickBooking
+            key={`${quick.unit?.id || 'pick'}-${quick.date}`}
+            unit={quick.unit}
+            units={units}
+            date={quick.date}
+            bookings={bookings}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setQuick(null)}
+            onMore={() => startNew(quick.date, quick.unit?.id)}
+            onDone={() => { toast('La réservation a été enregistrée.'); setQuick(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {quick && quick.booking && (
         <Modal label="Écrire sur le planning" onClose={() => setQuick(null)} width="max-w-md">
           <QuickNote
             key={quick.booking ? quick.booking.id : `${quick.unit?.id || 'pick'}-${quick.date}`}
@@ -291,7 +309,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         ) : (
           <>
             <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
-            <DayPanel bookings={bookings} day={day} onNew={(d) => startNew(d)} onArrive={arrive} onLeave={leave} />
+            <DayPanel bookings={bookings} day={day} onNew={(d) => { setSheetId(null); setForm(null); setQuick({ unit: null, date: d }) }} onArrive={arrive} onLeave={leave} />
           </>
         )}
       </Section>
