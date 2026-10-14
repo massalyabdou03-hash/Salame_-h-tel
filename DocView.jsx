@@ -24,12 +24,17 @@ function Header({ info, title, subtitle }) {
   )
 }
 
-// Cachet + signature de la gérante : le cachet en bas, la signature au-dessus à droite
+// Cachet seul en haut à droite du document (facture et contrat), comme sur la facture papier
+function TopStamp() {
+  return <img src={CACHET.src} alt="Cachet" className="w-24 shrink-0 sm:w-32" />
+}
+
+// Cachet de la gérante avec sa signature posée par-dessus, au milieu, comme sur les factures papier
 function Seal({ className = '' }) {
   return (
-    <div className={`relative mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] ${className}`}>
-      <img src={CACHET.src} alt="Cachet" className="absolute bottom-0 left-1/2 w-[92%] -translate-x-1/2" />
-      <img src={SIGNATURE.src} alt="Signature" className="absolute left-[40%] top-0 w-[52%]" />
+    <div className={`relative mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] ${className}`}>
+      <img src={CACHET.src} alt="Cachet" className="absolute left-0 top-1/2 w-full -translate-y-1/2" />
+      <img src={SIGNATURE.src} alt="Signature" className="absolute left-1/2 top-1/2 w-[76%] -translate-x-1/2 -translate-y-1/2" />
     </div>
   )
 }
@@ -40,11 +45,14 @@ function Invoice({ info, b, inv }) {
     <>
       <Header info={info} title="FACTURE" subtitle={`N° ${inv.number}`} />
       <p className="mt-2 text-right text-xs">Ziguinchor, le {fdate(inv.issued_at.slice(0, 10))}</p>
-      <section className="mt-4 text-sm">
-        <p className="font-semibold text-salam-700">Client</p>
-        <p>{`${b.clients.first_name} ${b.clients.last_name}`.trim()}{known(b.clients.phone) ? ` — Tél : ${b.clients.phone}` : ''}</p>
-        {known(b.clients.id_number) && <p>Pièce d'identité : {b.clients.id_number}</p>}
-      </section>
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <section className="text-sm">
+          <p className="font-semibold text-salam-700">Client</p>
+          <p>{`${b.clients.first_name} ${b.clients.last_name}`.trim()}{known(b.clients.phone) ? ` — Tél : ${b.clients.phone}` : ''}</p>
+          {known(b.clients.id_number) && <p>Pièce d'identité : {b.clients.id_number}</p>}
+        </section>
+        <TopStamp />
+      </div>
       <table className="mt-6 w-full text-sm">
         <thead className="bg-salam-700 text-white">
           <tr><th className="p-2 text-left">Libellé</th><th className="p-2">Séjour</th><th className="p-2">Nuitées</th><th className="p-2 text-right">Montant total</th></tr>
@@ -129,10 +137,13 @@ function Contract({ info, b }) {
   return (
     <>
       <Header info={info} title="CONTRAT DE RÉSERVATION" subtitle={`Réf. ${b.id.slice(0, 8).toUpperCase()}`} />
-      <section className="mt-4 space-y-1 text-sm">
-        <p><b>Entre :</b> {info.name} / {info.brand}, représenté par {info.manager}, gérante (le bailleur),</p>
-        <p><b>Et :</b> {`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. {known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° {known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).</p>
-      </section>
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <section className="space-y-1 text-sm">
+          <p><b>Entre :</b> {info.name} / {info.brand}, représenté par {info.manager}, gérante (le bailleur),</p>
+          <p><b>Et :</b> {`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. {known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° {known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).</p>
+        </section>
+        <TopStamp />
+      </div>
       <h3 className="mt-5 font-bold text-salam-700">Article 1 — Objet et prix</h3>
       <p className="text-sm">
         Réservation du logement <b>{b.units.name}</b> ({b.units.type}) du {fdate(b.check_in)} au {fdate(b.check_out)}, soit {b.nights} nuitée{b.nights > 1 ? 's' : ''}.
@@ -154,7 +165,7 @@ function Contract({ info, b }) {
         <div>
           <p className="font-semibold">Le client</p>
           <p className="text-xs text-slate-500">« Lu et approuvé »</p>
-          <div className="mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] border-b" />
+          <div className="mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] border-b" />
         </div>
       </div>
     </>

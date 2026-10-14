@@ -45,14 +45,20 @@ function flow(doc, y, text, { size = 10, bold = false, color = 30, x = 15, w = 1
 }
 
 // Cachet + signature : bloc de 50 mm de large centré sur cx, haut à y. Renvoie la hauteur utilisée.
-// Le cachet est en bas, la signature au-dessus à droite (elle ne touche que le haut du cachet).
+// La signature est posée par-dessus le cachet, au milieu, et dépasse un peu en haut et en bas (comme sur la facture papier).
 function seal(doc, cx, y) {
-  const W = 50, H = W * 5 / 6
-  const sw = 46, sh = sw * CACHET.h / CACHET.w
-  const gw = 26, gh = gw * SIGNATURE.h / SIGNATURE.w
-  doc.addImage(CACHET.src, 'PNG', cx - sw / 2, y + H - sh, sw, sh)
-  doc.addImage(SIGNATURE.src, 'PNG', cx - 5, y, gw, gh)
+  const W = 50, H = W * 2 / 3
+  const sw = W, sh = sw * CACHET.h / CACHET.w
+  const gw = 38, gh = gw * SIGNATURE.h / SIGNATURE.w
+  doc.addImage(CACHET.src, 'PNG', cx - sw / 2, y + (H - sh) / 2, sw, sh)
+  doc.addImage(SIGNATURE.src, 'PNG', cx - gw / 2, y + (H - gh) / 2, gw, gh)
   return H
+}
+
+// Cachet seul en haut à droite du document, comme sur la facture papier (haut à y)
+function topStamp(doc, y) {
+  const w = 32, h = w * CACHET.h / CACHET.w
+  doc.addImage(CACHET.src, 'PNG', 195 - w, y, w, h)
 }
 
 export function buildInvoice(info, b, inv) {
@@ -60,6 +66,7 @@ export function buildInvoice(info, b, inv) {
   header(doc, info, 'FACTURE', `N° ${inv.number}`)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30)
   doc.text(`Ziguinchor, le ${fdate(inv.issued_at.slice(0, 10))}`, 195, 49, { align: 'right' })
+  topStamp(doc, 53)
 
   let y = flow(doc, 52, 'Client', { size: 11, bold: true, color: GREEN })
   y = flow(doc, y, [
@@ -174,8 +181,9 @@ export function buildContract(info, b) {
   const doc = newDoc()
   const balance = Number(b.total_amount) - Number(b.advance)
   header(doc, info, 'CONTRAT DE RÉSERVATION', `Réf. ${b.id.slice(0, 8).toUpperCase()}`)
-  let y = flow(doc, 50, `Entre : ${info.name} / ${info.brand}, représenté par ${info.manager}, gérante (le bailleur),`)
-  y = flow(doc, y, `Et : ${`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. ${known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° ${known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).`, { gap: 6 })
+  topStamp(doc, 47)
+  let y = flow(doc, 50, `Entre : ${info.name} / ${info.brand}, représenté par ${info.manager}, gérante (le bailleur),`, { w: 140 })
+  y = flow(doc, y, `Et : ${`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. ${known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° ${known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).`, { gap: 6, w: 140 })
 
   y = flow(doc, y, 'Article 1 - Objet et prix', { size: 11, bold: true, color: GREEN })
   y = flow(doc, y, `Réservation du logement ${b.units.name} (${b.units.type}) du ${fdate(b.check_in)} au ${fdate(b.check_out)}, soit ${b.nights} nuitée${b.nights > 1 ? 's' : ''}.`, { gap: 1 })
