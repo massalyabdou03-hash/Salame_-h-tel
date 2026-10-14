@@ -45,13 +45,13 @@ function flow(doc, y, text, { size = 10, bold = false, color = 30, x = 15, w = 1
 }
 
 // Cachet + signature : bloc de 50 mm de large centré sur cx, haut à y. Renvoie la hauteur utilisée.
-// Le cachet est en bas, la signature au-dessus à droite (elle ne touche que le haut du cachet).
+// La signature est posée par-dessus le cachet, au milieu, et dépasse un peu en haut et en bas (comme sur la facture papier).
 function seal(doc, cx, y) {
-  const W = 50, H = W * 5 / 6
-  const sw = 46, sh = sw * CACHET.h / CACHET.w
-  const gw = 26, gh = gw * SIGNATURE.h / SIGNATURE.w
-  doc.addImage(CACHET.src, 'PNG', cx - sw / 2, y + H - sh, sw, sh)
-  doc.addImage(SIGNATURE.src, 'PNG', cx - 5, y, gw, gh)
+  const W = 50, H = W * 2 / 3
+  const sw = W, sh = sw * CACHET.h / CACHET.w
+  const gw = 38, gh = gw * SIGNATURE.h / SIGNATURE.w
+  doc.addImage(CACHET.src, 'PNG', cx - sw / 2, y + (H - sh) / 2, sw, sh)
+  doc.addImage(SIGNATURE.src, 'PNG', cx - gw / 2, y + (H - gh) / 2, gw, gh)
   return H
 }
 

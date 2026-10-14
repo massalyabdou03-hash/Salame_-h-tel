@@ -24,12 +24,12 @@ function Header({ info, title, subtitle }) {
   )
 }
 
-// Cachet + signature de la gérante : le cachet en bas, la signature au-dessus à droite
+// Cachet de la gérante avec sa signature posée par-dessus, au milieu, comme sur les factures papier
 function Seal({ className = '' }) {
   return (
-    <div className={`relative mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] ${className}`}>
-      <img src={CACHET.src} alt="Cachet" className="absolute bottom-0 left-1/2 w-[92%] -translate-x-1/2" />
-      <img src={SIGNATURE.src} alt="Signature" className="absolute left-[40%] top-0 w-[52%]" />
+    <div className={`relative mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] ${className}`}>
+      <img src={CACHET.src} alt="Cachet" className="absolute left-0 top-1/2 w-full -translate-y-1/2" />
+      <img src={SIGNATURE.src} alt="Signature" className="absolute left-1/2 top-1/2 w-[76%] -translate-x-1/2 -translate-y-1/2" />
     </div>
   )
 }
@@ -154,7 +154,7 @@ function Contract({ info, b }) {
         <div>
           <p className="font-semibold">Le client</p>
           <p className="text-xs text-slate-500">« Lu et approuvé »</p>
-          <div className="mx-auto mt-2 aspect-[6/5] w-full max-w-[15rem] border-b" />
+          <div className="mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] border-b" />
         </div>
       </div>
     </>
