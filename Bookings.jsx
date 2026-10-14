@@ -7,7 +7,7 @@ import BookingForm from './BookingForm'
 import QuickBooking from './QuickBooking'
 import QuickNote from './QuickNote'
 import { BookingSheet } from './Planning'
-import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
+import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
 import { PageHeader, Badge, Empty, Modal, useNotify } from './ui'
 import { useStayActions, dakarDate, dakarTime } from './stay'
 
@@ -247,6 +247,11 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
         </Modal>
       )}
 
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600">
+        <span className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded-sm ${SOURCE.direct.dot}`} /> Client direct</span>
+        <span className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded-sm ${SOURCE.courtier.dot}`} /> Pris par un courtier</span>
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {FILTERS.map(([id, label]) => (
           <button key={id} onClick={() => setFilter(id)} className={`badge-filter ${filter === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>
@@ -272,7 +277,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
               id={`res-${b.id}`}
               // Toucher la carte (hors boutons) ouvre la fiche de la réservation
               onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) setSheetId(b.id) }}
-              className={`card cursor-pointer space-y-4 transition hover:border-salam-600/60 ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}
+              className={`card cursor-pointer space-y-4 transition hover:shadow-md ${SOURCE[sourceOf(b)].bar} ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -280,6 +285,9 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                     <h3 className="text-lg font-bold text-slate-900">{clientName(b)}</h3>
                     <p className="text-sm font-semibold text-salam-700">{b.units.name}</p>
                   </button>
+                  {!hold && !b.broker_id && (
+                    <p className={`mt-1 w-fit rounded-full px-2 py-0.5 text-xs font-semibold ${SOURCE.direct.pill}`}>Client direct</p>
+                  )}
                   {(hold || b.broker_id) && (
                     <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
                       <Handshake size={12} /> {jotted ? 'Écrit à la main · à compléter' : hold ? 'Client à préciser' : `Via ${b.broker_name || 'un courtier'}`}

@@ -35,6 +35,14 @@ export const STAGE = {
   annulee: ['Annulée', 'bg-red-100 text-red-800'],
 }
 
+// Origine d'une réservation, avec ses deux couleurs partout dans l'app :
+// client direct = vert · pris par un courtier = doré (écrit à la main sans client ni courtier = neutre)
+export const sourceOf = (b) => (b.broker_id ? 'courtier' : !b.client_id ? 'note' : 'direct')
+export const SOURCE = {
+  direct: { label: 'Client direct', bar: 'border-l-4 border-salam-600', pill: 'bg-salam-50 text-salam-800', dot: 'bg-salam-600' },
+  courtier: { label: 'Via un courtier', bar: 'border-l-4 border-gold', pill: 'bg-amber-100 text-amber-900', dot: 'bg-gold' },
+  note: { label: 'Écrit à la main', bar: 'border-l-4 border-slate-300', pill: 'bg-slate-100 text-slate-700', dot: 'bg-slate-300' },
+}
 // Réservation « bloquée » par un courtier : le logement est réservé mais le client n'est pas encore connu
 export const isHold = (b) => !b.client_id
 // Nom à afficher pour une réservation (client, ou « Bloqué par … » si le client n'est pas encore connu)

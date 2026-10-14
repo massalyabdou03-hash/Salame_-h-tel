@@ -1,5 +1,5 @@
 import { Plus, Wrench, ChevronRight, Users, Banknote } from 'lucide-react'
-import { fcfa, fdate, today, stageOf, STAGE, isActive, clientName } from './utils'
+import { fcfa, fdate, today, stageOf, STAGE, isActive, clientName, sourceOf, SOURCE } from './utils'
 import { Badge } from './ui'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
@@ -11,7 +11,7 @@ function Row({ b, onOpen }) {
   const rest = Number(b.total_amount) - Number(b.advance)
   return (
     <li>
-      <button type="button" onClick={() => onOpen(b)} className="flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-left transition hover:bg-salam-50">
+      <button type="button" onClick={() => onOpen(b)} className={`flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-left transition hover:bg-salam-50 ${SOURCE[sourceOf(b)].bar}`}>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-slate-900">{clientName(b)}</span>
           <span className="block text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}</span>
