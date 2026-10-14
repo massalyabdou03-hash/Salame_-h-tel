@@ -7,7 +7,11 @@ export const GIE = {
   address: 'Santhiaba – Ziguinchor (BD 54 Route Kandé)',
   phones: '77 671 18 26 / 77 659 26 11',
 }
-export const PAY_MODES = ['Espèces', 'Orange Money', 'Virement', 'Chèque', 'Wave']
+// Valeur enregistrée en base quand le téléphone ou la pièce d'identité n'est pas connu (colonnes obligatoires)
+export const NR = 'Non renseigné'
+// Vrai si l'information existe vraiment (ni vide, ni « Non renseigné »)
+export const known = (v) => { const s = String(v ?? '').trim(); return s !== '' && s !== NR }
+export const PAY_MODES =['Espèces', 'Orange Money', 'Virement', 'Chèque', 'Wave']
 export const UNIT_ZONES = ['Rez-de-chaussée', 'Étage', 'Duplex', 'Appartement']
 export const UNIT_TYPES = ['Chambre simple', 'Chambre ventilée', 'Chambre double', 'Duplex', 'Appartement']
 export const EXPENSE_CATS = ['Plomberie', 'Électricité', 'Maintenance', "Produits d'entretien", 'Équipements', 'Autre']
