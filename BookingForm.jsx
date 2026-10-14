@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-import { PAY_MODES, fcfa, today, addDays, nightsBetween } from './utils'
+import { PAY_MODES, NR, known, fcfa, today, addDays, nightsBetween } from './utils'
 import { Field, useNotify } from './ui'
 import { longDate } from './calendar'
 
@@ -35,7 +35,10 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
   const [isNew, setIsNew] = useState(choosingClient && (clients.length === 0 || (Boolean(prefill) && !known)))
   const [clientId, setClientId] = useState(known ? known.id : '')
   const [created, setCreated] = useState(null) // évite un doublon client si la réservation échoue
-  const [c, setC] = useState({ last_name: prefill?.last_name || '', first_name: prefill?.first_name || '', phone: prefill?.phone || '', id_number: '' })
+  // Informations du client : seul le nom est obligatoire. En modification, on reprend celles du client (« Non renseigné » = champ vide)
+  const [c, setC] = useState(editing && booking.clients
+    ? { last_name: booking.clients.last_name || '', first_name: booking.clients.first_name || '', phone: known(booking.clients.phone) ? booking.clients.phone : '', id_number: known(booking.clients.id_number) ? booking.clients.id_number : '' }
+    : { last_name: prefill?.last_name || '', first_name: prefill?.first_name || '', phone: prefill?.phone || '', id_number: '' })
   const [f, setF] = useState(editing
     ? { unit_id: String(booking.unit_id), check_in: booking.check_in, check_out: booking.check_out, payment_mode: booking.payment_mode, advance: String(booking.advance), total: holdEdit ? '' : String(booking.total_amount) }
     : prefill
@@ -92,6 +95,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
     e.preventDefault()
     setErr('')
     if (nights < 1) return setErr("La date de départ doit être après la date d'arrivée.")
+    if (((isNew && choosingClient && !isHold) || (editing && !holdEdit)) && !c.last_name.trim()) return setErr('Écrivez le nom du client.')
 
     if (isHold) {
       if (!brokerId) return setErr('Choisissez le courtier qui bloque le logement.')
@@ -134,11 +138,22 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
     if (choosingClient && !isHold) {
       cid = isNew ? created : clientId
       if (isNew && !cid) {
-        const row = isLegacy ? { ...c, phone: c.phone.trim() || 'Non renseigné', id_number: c.id_number.trim() || 'Non renseigné' } : c
+        // Téléphone et pièce facultatifs : « Non renseigné » en base (colonnes obligatoires), prénom vide accepté
+        const row = { last_name: c.last_name.trim(), first_name: c.first_name.trim(), phone: c.phone.trim() || NR, id_number: c.id_number.trim() || NR }
         const r = await supabase.from('clients').insert(row).select().single()
         if (r.error) { setBusy(false); return setErr(r.error.message) }
         cid = r.data.id
         setCreated(cid)
+      }
+    }
+
+    // Modification d'une réservation avec client : on enregistre aussi les informations complétées (téléphone, pièce…)
+    if (editing && !holdEdit && booking.client_id) {
+      const row = { last_name: c.last_name.trim(), first_name: c.first_name.trim(), phone: c.phone.trim() || NR, id_number: c.id_number.trim() || NR }
+      const old = booking.clients || {}
+      if (['last_name', 'first_name', 'phone', 'id_number'].some((k) => row[k] !== (old[k] ?? ''))) {
+        const r = await supabase.from('clients').update(row).eq('id', booking.client_id)
+        if (r.error) { setBusy(false); return setErr(r.error.message) }
       }
     }
 
@@ -237,7 +252,16 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
       )}
 
       {editing && !holdEdit ? (
-        <p className="rounded-lg bg-slate-50 p-3 text-sm">Client : <b>{booking.clients.first_name} {booking.clients.last_name}</b> — {booking.clients.phone}</p>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Client</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nom"><input className="input" required value={c.last_name} onChange={setClient('last_name')} /></Field>
+            <Field label="Prénom (facultatif)"><input className="input" value={c.first_name} onChange={setClient('first_name')} /></Field>
+            <Field label="Téléphone (facultatif)"><input className="input" type="tel" value={c.phone} onChange={setClient('phone')} /></Field>
+            <Field label="N° pièce d'identité (facultatif)"><input className="input" value={c.id_number} onChange={setClient('id_number')} /></Field>
+          </div>
+          {(!known(c.phone) || !known(c.id_number)) && <p className="text-xs text-slate-500">Vous pouvez compléter le téléphone et la pièce d'identité quand le client les apporte.</p>}
+        </div>
       ) : isHold ? null : (
         <div className="space-y-3">
           {clients.length > 0 && (
@@ -251,15 +275,15 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
           {isNew ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Nom"><input className="input" required value={c.last_name} onChange={setClient('last_name')} /></Field>
-              <Field label="Prénom"><input className="input" required value={c.first_name} onChange={setClient('first_name')} /></Field>
-              <Field label="Téléphone"><input className="input" type="tel" required={!isLegacy} value={c.phone} onChange={setClient('phone')} /></Field>
-              <Field label="N° pièce d'identité"><input className="input" required={!isLegacy} value={c.id_number} onChange={setClient('id_number')} /></Field>
+              <Field label="Prénom (facultatif)"><input className="input" value={c.first_name} onChange={setClient('first_name')} /></Field>
+              <Field label="Téléphone (facultatif)"><input className="input" type="tel" value={c.phone} onChange={setClient('phone')} /></Field>
+              <Field label="N° pièce d'identité (facultatif)"><input className="input" value={c.id_number} onChange={setClient('id_number')} /></Field>
             </div>
           ) : (
             <Field label="Client">
               <select className="input" required value={clientId} onChange={(e) => setClientId(e.target.value)}>
                 <option value="">Choisir…</option>
-                {clients.map((x) => <option key={x.id} value={x.id}>{x.last_name} {x.first_name} — {x.phone}</option>)}
+                {clients.map((x) => <option key={x.id} value={x.id}>{`${x.last_name} ${x.first_name}`.trim()}{known(x.phone) ? ` — ${x.phone}` : ''}</option>)}
               </select>
             </Field>
           )}
@@ -298,7 +322,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
           <input type="checkbox" className="mt-1 h-4 w-4" checked={legacy} onChange={toggleLegacy} />
           <span>
             <b>Ancienne réservation</b> (déjà terminée, pour compléter l'historique)
-            <span className="block text-xs text-slate-500">Téléphone et pièce d'identité facultatifs. Aucune facture ni contrat n'est créé : la facture papier existe déjà.</span>
+            <span className="block text-xs text-slate-500">Aucune facture ni contrat n'est créé : la facture papier existe déjà.</span>
           </span>
         </label>
       )}

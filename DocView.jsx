@@ -1,5 +1,8 @@
 import { Printer, ArrowLeft, Share2, Download } from 'lucide-react'
-import { fcfa, fdate } from './utils'
+import { fcfa, fdate, known } from './utils'
+
+// Information absente (client venu sans pièce, par exemple) : points à remplir à la main sur le contrat imprimé
+const BLANK = '..............................'
 import { buildInvoice, buildContract, buildProforma, sharePdf, RULES } from './pdf'
 import { CACHET, SIGNATURE } from './assets'
 
@@ -39,8 +42,8 @@ function Invoice({ info, b, inv }) {
       <p className="mt-2 text-right text-xs">Ziguinchor, le {fdate(inv.issued_at.slice(0, 10))}</p>
       <section className="mt-4 text-sm">
         <p className="font-semibold text-salam-700">Client</p>
-        <p>{b.clients.first_name} {b.clients.last_name} — Tél : {b.clients.phone}</p>
-        <p>Pièce d'identité : {b.clients.id_number}</p>
+        <p>{`${b.clients.first_name} ${b.clients.last_name}`.trim()}{known(b.clients.phone) ? ` — Tél : ${b.clients.phone}` : ''}</p>
+        {known(b.clients.id_number) && <p>Pièce d'identité : {b.clients.id_number}</p>}
       </section>
       <table className="mt-6 w-full text-sm">
         <thead className="bg-salam-700 text-white">
@@ -128,7 +131,7 @@ function Contract({ info, b }) {
       <Header info={info} title="CONTRAT DE RÉSERVATION" subtitle={`Réf. ${b.id.slice(0, 8).toUpperCase()}`} />
       <section className="mt-4 space-y-1 text-sm">
         <p><b>Entre :</b> {info.name} / {info.brand}, représenté par {info.manager}, gérante (le bailleur),</p>
-        <p><b>Et :</b> {b.clients.first_name} {b.clients.last_name}, tél. {b.clients.phone}, pièce d'identité n° {b.clients.id_number} (le client).</p>
+        <p><b>Et :</b> {`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. {known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° {known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).</p>
       </section>
       <h3 className="mt-5 font-bold text-salam-700">Article 1 — Objet et prix</h3>
       <p className="text-sm">

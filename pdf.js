@@ -1,5 +1,8 @@
 import { jsPDF } from 'jspdf'
-import { fcfa, fdate } from './utils'
+import { fcfa, fdate, known } from './utils'
+
+// Information absente (client venu sans pièce, par exemple) : points à remplir à la main sur le contrat imprimé
+const BLANK = '..............................'
 import { CACHET, SIGNATURE } from './assets'
 
 const GREEN = [31, 77, 58]
@@ -59,7 +62,11 @@ export function buildInvoice(info, b, inv) {
   doc.text(`Ziguinchor, le ${fdate(inv.issued_at.slice(0, 10))}`, 195, 49, { align: 'right' })
 
   let y = flow(doc, 52, 'Client', { size: 11, bold: true, color: GREEN })
-  y = flow(doc, y, `${b.clients.first_name} ${b.clients.last_name}\nTél : ${b.clients.phone}\nPièce d'identité : ${b.clients.id_number}`)
+  y = flow(doc, y, [
+    `${b.clients.first_name} ${b.clients.last_name}`.trim(),
+    known(b.clients.phone) && `Tél : ${b.clients.phone}`,
+    known(b.clients.id_number) && `Pièce d'identité : ${b.clients.id_number}`,
+  ].filter(Boolean).join('\n'))
 
   y += 8
   doc.setFillColor(...GREEN); doc.rect(15, y, 180, 8, 'F')
@@ -168,7 +175,7 @@ export function buildContract(info, b) {
   const balance = Number(b.total_amount) - Number(b.advance)
   header(doc, info, 'CONTRAT DE RÉSERVATION', `Réf. ${b.id.slice(0, 8).toUpperCase()}`)
   let y = flow(doc, 50, `Entre : ${info.name} / ${info.brand}, représenté par ${info.manager}, gérante (le bailleur),`)
-  y = flow(doc, y, `Et : ${b.clients.first_name} ${b.clients.last_name}, tél. ${b.clients.phone}, pièce d'identité n° ${b.clients.id_number} (le client).`, { gap: 6 })
+  y = flow(doc, y, `Et : ${`${b.clients.first_name} ${b.clients.last_name}`.trim()}, tél. ${known(b.clients.phone) ? b.clients.phone : BLANK}, pièce d'identité n° ${known(b.clients.id_number) ? b.clients.id_number : BLANK} (le client).`, { gap: 6 })
 
   y = flow(doc, y, 'Article 1 - Objet et prix', { size: 11, bold: true, color: GREEN })
   y = flow(doc, y, `Réservation du logement ${b.units.name} (${b.units.type}) du ${fdate(b.check_in)} au ${fdate(b.check_out)}, soit ${b.nights} nuitée${b.nights > 1 ? 's' : ''}.`, { gap: 1 })

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Search, ArrowLeft, FileText, FileSignature, Trash2 } from 'lucide-react'
 import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
-import { fcfa, fdate } from './utils'
+import { fcfa, fdate, known } from './utils'
 import { PageHeader, Empty, Badge, useNotify } from './ui'
 
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -23,8 +23,8 @@ export default function Clients({ data, openDoc, reload }) {
   const rows = data.clients.filter((c) =>
     !query ||
     norm(`${c.first_name} ${c.last_name} ${c.last_name} ${c.first_name}`).includes(query) ||
-    norm(c.id_number).replace(/\s/g, '').includes(compact) ||
-    (qDigits && digits(c.phone).includes(qDigits))
+    (known(c.id_number) && norm(c.id_number).replace(/\s/g, '').includes(compact)) ||
+    (qDigits && known(c.phone) && digits(c.phone).includes(qDigits))
   )
 
   const client = data.clients.find((c) => c.id === selId)
@@ -69,7 +69,8 @@ export default function Clients({ data, openDoc, reload }) {
         <button className="btn btn-secondary w-fit" onClick={() => setSelId(null)}><ArrowLeft size={16} /> Tous les clients</button>
         <div className="card">
           <h1 className="text-2xl font-extrabold">{client.first_name} {client.last_name}</h1>
-          <p className="text-sm text-slate-600">Téléphone : {client.phone} · Pièce d'identité : {client.id_number}</p>
+          <p className="text-sm text-slate-600">Téléphone : {known(client.phone) ? client.phone : 'non renseigné'} · Pièce d'identité : {known(client.id_number) ? client.id_number : 'non renseignée'}</p>
+          {(!known(client.phone) || !known(client.id_number)) && <p className="mt-1 text-xs text-slate-500">Pour compléter ces informations, ouvrez sa réservation puis « Modifier ».</p>}
           <p className="mt-2 text-sm">{stays.length} séjour{stays.length > 1 ? 's' : ''} · Total dépensé <b>{fcfa(spent)}</b></p>
         </div>
         <h2 className="text-lg font-bold">Historique des séjours</h2>
@@ -123,7 +124,7 @@ export default function Clients({ data, openDoc, reload }) {
               <button onClick={() => setSelId(c.id)} className="card flex w-full items-center justify-between gap-3 !p-4 text-left transition-colors hover:border-salam-600 hover:bg-salam-50/40">
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{c.last_name} {c.first_name}</p>
-                  <p className="truncate text-xs text-slate-500">{c.phone} · {c.id_number}</p>
+                  <p className="truncate text-xs text-slate-500">{[known(c.phone) && c.phone, known(c.id_number) && c.id_number].filter(Boolean).join(' · ') || 'Informations à compléter'}</p>
                 </div>
                 <Badge className="bg-salam-50 text-salam-700">{n} séjour{n > 1 ? 's' : ''}</Badge>
               </button>
