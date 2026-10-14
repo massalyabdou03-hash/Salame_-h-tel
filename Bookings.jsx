@@ -189,14 +189,14 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
             reloadBrokers={reload}
             onCancel={() => { setFromProforma(null); setForm(null) }}
             onMore={() => setForm('new')}
-            onDone={async (bookingId) => {
+            onDone={async (bookingId, info) => {
               // Réservation créée depuis un proforma : on le marque « transformé » et on garde le lien
               if (fromProforma?.id && bookingId) {
                 const { error } = await supabase.from('proformas').update({ status: 'acceptee', booking_id: bookingId }).eq('id', fromProforma.id)
                 if (error) toast(`La réservation est enregistrée, mais le proforma n'a pas pu être mis à jour : ${error.message}`, 'error')
                 else toast('La réservation a été enregistrée et le proforma est marqué « transformé ».')
               } else {
-                toast('La réservation a été enregistrée.')
+                toast(info?.hold ? 'Le logement est bloqué pour le courtier.' : 'La réservation a été enregistrée.')
               }
               setFromProforma(null)
               setForm(null)

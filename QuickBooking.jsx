@@ -41,6 +41,8 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
   const [busy, setBusy] = useState(false)
 
   const unit = units.find((u) => String(u.id) === unitId)
+  // Courtier choisi et nom du client laissé vide : on bloque seulement le logement pour ce courtier (ni client, ni prix)
+  const isHold = !hasClient && Boolean(brokerId) && !name.trim()
 
   // On ne peut pas aller au-delà de la prochaine réservation du même logement
   const next = (bookings || [])
@@ -67,15 +69,15 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
   const submit = async (e) => {
     e.preventDefault()
     setErr('')
-    if (!name.trim()) return setErr('Écrivez le nom du client.')
+    if (!isHold && !name.trim()) return setErr('Écrivez le nom du client, ou choisissez un courtier pour bloquer seulement le logement.')
     if (!unit) return setErr('Choisissez le logement.')
     if (!editing && (!start || start < today())) return setErr("Choisissez un jour à partir d'aujourd'hui.")
     if (!start) return setErr("Choisissez le jour d'arrivée.")
-    if (!(total >= 0)) return setErr('Le montant doit être un nombre positif.')
-    const paid = Number(advance || 0)
+    if (!isHold && !(total >= 0)) return setErr('Le montant doit être un nombre positif.')
+    const paid = isHold ? 0 : Number(advance || 0)
     if (paid > total) return setErr("L'avance ne peut pas dépasser le montant total.")
-    const comm = brokerId ? Number(commission || 0) : 0
-    if (!locked) {
+    const comm = brokerId && !isHold ? Number(commission || 0) : 0
+    if (!locked && !isHold) {
       if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
       if (comm > total) return setErr('La commission ne peut pas dépasser le montant total.')
     }
@@ -84,7 +86,9 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     // Seul le nom est obligatoire : le reste est « Non renseigné » en base, à compléter plus tard
     const row = { last_name: name.trim(), first_name: first.trim(), phone: phone.trim() || NR, id_number: idNumber.trim() || NR }
     let cid = created || (hasClient ? booking.client_id : null)
-    if (hasClient) {
+    if (isHold) {
+      cid = null
+    } else if (hasClient) {
       const old = cl || {}
       if (['last_name', 'first_name', 'phone', 'id_number'].some((k) => row[k] !== (old[k] ?? ''))) {
         const r = await supabase.from('clients').update(row).eq('id', booking.client_id)
@@ -97,11 +101,9 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
       setCreated(cid)
     }
 
-    const payload = {
-      unit_id: unit.id, check_in: start, check_out: end,
-      payment_mode: payMode, total_amount: total, advance: paid,
-      note: note.trim() || null,
-    }
+    const payload = isHold
+      ? { unit_id: unit.id, check_in: start, check_out: end, payment_mode: PAY_MODES[0], total_amount: 0, advance: 0 }
+      : { unit_id: unit.id, check_in: start, check_out: end, payment_mode: payMode, total_amount: total, advance: paid, note: note.trim() || null }
     if (!locked) {
       payload.broker_id = brokerId ? Number(brokerId) : null
       payload.commission_amount = comm
@@ -110,7 +112,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     let error
     let savedId = booking?.id
     if (editing) {
-      if (!hasClient) payload.client_id = cid
+      if (!hasClient && !isHold) payload.client_id = cid
       error = (await supabase.from('bookings').update(payload).eq('id', booking.id)).error
     } else {
       const ins = await supabase.from('bookings').insert({ client_id: cid, ...payload }).select('id').single()
@@ -125,7 +127,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
             : error.message,
       )
     }
-    onDone(savedId)
+    onDone(savedId, { hold: isHold })
   }
 
   const title = !editing ? (picking ? 'Écrire sur le planning' : 'Nouvelle réservation') : hasClient ? 'Modifier la réservation' : jotted ? 'Compléter la réservation' : 'Ajouter le client'
@@ -141,8 +143,8 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         {!editing && prefill && <p className="text-sm text-slate-500">Informations reprises du proforma.</p>}
       </div>
 
-      <Field label="Nom du client">
-        <input className="input" autoFocus={!editing} required maxLength={80} enterKeyHint="next" placeholder="Ex. Mamadou Diallo" value={name} onChange={(e) => setName(e.target.value)} />
+      <Field label="Nom du client" hint={brokerId && !hasClient ? 'Laissez vide pour bloquer seulement le logement pour ce courtier.' : undefined}>
+        <input className="input" autoFocus={!editing} required={!brokerId || hasClient} maxLength={80} enterKeyHint="next" placeholder="Ex. Mamadou Diallo" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -152,9 +154,11 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
             {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance' && String(u.id) !== unitId}>{u.name}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
           </select>
         </Field>
-        <Field label="Montant (FCFA)">
-          <input className="input" type="number" inputMode="numeric" min="0" placeholder={byDefault > 0 ? String(byDefault) : ''} value={amount} onChange={(e) => setAmount(e.target.value)} />
-        </Field>
+        {!isHold && (
+          <Field label="Montant (FCFA)">
+            <input className="input" type="number" inputMode="numeric" min="0" placeholder={byDefault > 0 ? String(byDefault) : ''} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </Field>
+        )}
       </div>
 
       {(picking || editing || prefill) && (
@@ -171,14 +175,14 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Courtier (facultatif)">
+              <Field label="Courtier (facultatif)" hint={!hasClient && !brokerId ? "Il bloque un logement ? Choisissez-le et laissez le nom du client vide." : undefined}>
                 <select className="input" value={brokerId} onChange={(e) => setBrokerId(e.target.value)}>
                   <option value="">Aucun</option>
                   {brokers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                   {brokerId && !brokers.some((x) => String(x.id) === brokerId) && <option value={brokerId}>{booking?.broker_name || 'Courtier'} (retiré de la liste)</option>}
                 </select>
               </Field>
-              {brokerId && (
+              {brokerId && !isHold && (
                 <Field label="Commission du courtier (FCFA)">
                   <input className="input" type="number" inputMode="numeric" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} />
                 </Field>
@@ -206,6 +210,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         <p className="mt-1 text-xs text-slate-500">Départ le {fdate(end)}{next && nights >= max ? ' · la nuit suivante est déjà réservée' : ''}</p>
       </div>
 
+      {!isHold && (
       <details open={openDetails} className="group rounded-xl border border-slate-200 bg-slate-50">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-salam-700">
           <span>Plus de détails <span className="font-normal text-slate-500">(tout est facultatif)</span></span>
@@ -232,12 +237,19 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
           <p className="text-xs text-slate-500">Le téléphone et la pièce pourront être ajoutés plus tard, en modifiant la réservation.</p>
         </div>
       </details>
+      )}
 
-      <p className="rounded-xl bg-salam-50 p-3 text-sm">Total <b>{fcfa(total)}</b> · Reste à payer <b className="text-salam-700">{fcfa(total - Number(advance || 0))}</b></p>
+      {isHold ? (
+        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+          Le logement sera <b>gardé</b> pour le courtier du {longDate(start)} ({nights} nuit{nights > 1 ? 's' : ''}). Aucun montant à saisir pour l'instant : vous noterez le client et le prix quand il sera connu (bouton « Ajouter le client »).
+        </p>
+      ) : (
+        <p className="rounded-xl bg-salam-50 p-3 text-sm">Total <b>{fcfa(total)}</b> · Reste à payer <b className="text-salam-700">{fcfa(total - Number(advance || 0))}</b></p>
+      )}
       {err && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+        <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : isHold ? 'Bloquer le logement' : 'Enregistrer'}</button>
         <button type="button" className="btn btn-secondary btn-lg" onClick={onCancel}>Annuler</button>
       </div>
       {onMore && !editing && (
