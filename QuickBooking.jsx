@@ -192,7 +192,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
         <button type="button" className="btn btn-secondary btn-lg" onClick={onCancel}>Annuler</button>
       </div>
-      {!picking && (
+      {onMore && (
         <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={onMore}>
           Client déjà enregistré ? Ouvrir le formulaire complet
         </button>

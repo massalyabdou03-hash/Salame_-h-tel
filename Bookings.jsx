@@ -4,8 +4,11 @@ import { FileText, FileSignature, Plus, Ban, Pencil, Banknote, CalendarDays, Tra
 import { supabase } from './supabase'
 import { getOrCreateInvoice } from './invoice'
 import BookingForm from './BookingForm'
+import QuickBooking from './QuickBooking'
+import QuickNote from './QuickNote'
+import { BookingSheet } from './Planning'
 import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, clientName } from './utils'
-import { PageHeader, Badge, Empty, useNotify } from './ui'
+import { PageHeader, Badge, Empty, Modal, useNotify } from './ui'
 import { useStayActions, dakarDate, dakarTime } from './stay'
 
 const FILTERS = [
@@ -19,7 +22,11 @@ const FILTERS = [
 export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro, focusId, onFocused }) {
   const { toast, confirm, inform } = useNotify()
   const { arrive, leave, undo } = useStayActions(reload)
-  const [form, setForm] = useState(startNew ? 'new' : null)
+  // form : null (fermé) · 'quick' (formulaire rapide) · 'new' (formulaire complet) · une réservation (modification)
+  const [form, setForm] = useState(startNew ? (startNew.proformaId ? 'new' : 'quick') : null)
+  const [sheetId, setSheetId] = useState(null) // fiche d'une réservation ouverte en touchant la carte
+  const [quickEdit, setQuickEdit] = useState(null) // correction d'un texte écrit à la main
+  const sheet = sheetId ? data.bookings.find((b) => b.id === sheetId) : null
   const [newDate, setNewDate] = useState(startNew?.date || null)
   const [fromProforma, setFromProforma] = useState(startNew?.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
   const [filter, setFilter] = useState('all')
@@ -29,7 +36,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
     if (!startNew) return
     setNewDate(startNew.date || null)
     setFromProforma(startNew.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
-    setForm('new')
+    setForm(startNew.proformaId ? 'new' : 'quick')
     onStarted?.()
   }, [startNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -131,13 +138,13 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
       <PageHeader title="Réservations" subtitle="Toutes les réservations de l'hôtel">
         {!form && goPro && <button className="btn btn-secondary btn-lg" onClick={goPro}><FileText size={18} /> Factures proforma</button>}
         {!form && (
-          <button className="btn btn-primary btn-lg" onClick={() => { setNewDate(null); setFromProforma(null); setForm('new') }}>
+          <button className="btn btn-primary btn-lg" onClick={() => { setNewDate(null); setFromProforma(null); setForm('quick') }}>
             <Plus size={18} /> Nouvelle réservation
           </button>
         )}
       </PageHeader>
 
-      {form && (
+      {form && form !== 'quick' && (
         <BookingForm
           key={form === 'new' ? `new-${newDate}-${fromProforma?.id || ''}` : form.id}
           prefill={form === 'new' ? fromProforma?.prefill : undefined}
@@ -164,6 +171,48 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
         />
       )}
 
+      {form === 'quick' && (
+        <Modal label="Nouvelle réservation" onClose={() => setForm(null)} width="max-w-md">
+          <QuickBooking
+            key={`quick-${newDate}`}
+            date={newDate || undefined}
+            units={data.units}
+            bookings={data.bookings}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setForm(null)}
+            onMore={() => setForm('new')}
+            onDone={() => { toast('La réservation a été enregistrée.'); setForm(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {quickEdit && (
+        <Modal label="Écrire sur le planning" onClose={() => setQuickEdit(null)} width="max-w-md">
+          <QuickNote
+            key={quickEdit.id}
+            booking={quickEdit}
+            bookings={data.bookings}
+            onCancel={() => setQuickEdit(null)}
+            onDone={() => { toast('Les modifications ont été enregistrées.'); setQuickEdit(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {sheet && !form && !quickEdit && (
+        <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
+          <BookingSheet
+            b={sheet}
+            onEdit={(b) => { setSheetId(null); setForm(b); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onQuick={(b) => { setSheetId(null); setQuickEdit(b) }}
+            onDetails={(b) => { setSheetId(null); setLit(b.id) ; setTimeout(() => setLit(null), 4000) }}
+            onRelease={(b) => { setSheetId(null); remove(b) }}
+            onArrive={arrive}
+            onLeave={leave}
+          />
+        </Modal>
+      )}
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {FILTERS.map(([id, label]) => (
           <button key={id} onClick={() => setFilter(id)} className={`badge-filter ${filter === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>
@@ -184,11 +233,19 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
           const jotted = isJotted(b)
 
           return (
-            <li key={b.id} id={`res-${b.id}`} className={`card space-y-4 transition ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}>
+            <li
+              key={b.id}
+              id={`res-${b.id}`}
+              // Toucher la carte (hors boutons) ouvre la fiche de la réservation
+              onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) setSheetId(b.id) }}
+              className={`card cursor-pointer space-y-4 transition hover:border-salam-600/60 ${stage === 'annulee' ? 'opacity-60' : ''} ${lit === b.id ? 'ring-4 ring-gold/60' : ''}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-slate-900">{clientName(b)}</h3>
-                  <p className="text-sm font-semibold text-salam-700">{b.units.name}</p>
+                  <button type="button" className="block text-left" onClick={() => setSheetId(b.id)} aria-label={`Ouvrir la fiche de ${clientName(b)}`}>
+                    <h3 className="text-lg font-bold text-slate-900">{clientName(b)}</h3>
+                    <p className="text-sm font-semibold text-salam-700">{b.units.name}</p>
+                  </button>
                   {(hold || b.broker_id) && (
                     <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
                       <Handshake size={12} /> {jotted ? 'Écrit à la main · à compléter' : hold ? 'Client à préciser' : `Via ${b.broker_name || 'un courtier'}`}
