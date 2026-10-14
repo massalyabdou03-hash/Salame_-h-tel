@@ -260,7 +260,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             reloadBrokers={reload}
             onCancel={() => setQuick(null)}
             onMore={() => openFull(quick.date, quick.unit?.id)}
-            onDone={() => { toast('La réservation a été enregistrée.'); setQuick(null); reload() }}
+            onDone={(_id, info) => { toast(info?.hold ? 'Le logement est bloqué pour le courtier.' : 'La réservation a été enregistrée.'); setQuick(null); reload() }}
           />
         </Modal>
       )}
