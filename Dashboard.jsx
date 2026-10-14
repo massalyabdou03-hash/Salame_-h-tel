@@ -178,7 +178,11 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
 
   const [quick, setQuick] = useState(null) // écriture directe : { unit, date } ou { unit, booking } pour corriger
 
-  const startNew = (date, unit_id) => { setSheetId(null); setQuick(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+  const [qedit, setQedit] = useState(null) // modification d'une réservation avec le formulaire rapide
+  // Formulaire rapide partout ; le formulaire complet (client déjà enregistré…) s'ouvre depuis un lien
+  const startNew = (date, unit_id) => { setSheetId(null); setForm(null); setQedit(null); setQuick({ unit: units.find((u) => u.id === unit_id) || null, date: date || t }) }
+  const openFull = (date, unit_id) => { setSheetId(null); setQuick(null); setQedit(null); setForm({ date: date || null, unit_id: unit_id || null }) }
+  const editBooking = (b) => { setSheetId(null); if (b.legacy) setForm({ booking: b }); else setQedit(b) }
 
   // Libère un logement bloqué par un courtier (aucun argent en jeu)
   const release = async (b) => {
@@ -255,7 +259,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             brokers={data.brokers}
             reloadBrokers={reload}
             onCancel={() => setQuick(null)}
-            onMore={() => startNew(quick.date, quick.unit?.id)}
+            onMore={() => openFull(quick.date, quick.unit?.id)}
             onDone={() => { toast('La réservation a été enregistrée.'); setQuick(null); reload() }}
           />
         </Modal>
@@ -271,13 +275,28 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             booking={quick.booking}
             bookings={bookings}
             onCancel={() => setQuick(null)}
-            onMore={() => startNew(quick.date, quick.unit?.id)}
+            onMore={() => openFull(quick.date, quick.unit?.id)}
             onDone={(edited) => { toast(edited ? 'Les modifications ont été enregistrées.' : 'C\'est noté sur le planning.'); setQuick(null); reload() }}
           />
         </Modal>
       )}
 
-      {unitOpen && !form && !quick && !sheet && (
+      {qedit && (
+        <Modal label="Modifier la réservation" onClose={() => setQedit(null)} width="max-w-md">
+          <QuickBooking
+            key={qedit.id}
+            booking={qedit}
+            units={units}
+            bookings={bookings}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setQedit(null)}
+            onDone={() => { toast('Les modifications ont été enregistrées.'); setQedit(null); reload() }}
+          />
+        </Modal>
+      )}
+
+      {unitOpen && !form && !quick && !qedit && !sheet && (
         <Modal label="Fiche du logement" onClose={() => setUnitId(null)} width="max-w-xl">
           <UnitSheet
             unit={unitOpen}
@@ -289,11 +308,11 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </Modal>
       )}
 
-      {sheet && !form && !quick && (
+      {sheet && !form && !quick && !qedit && (
         <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
           <BookingSheet
             b={sheet}
-            onEdit={(b) => { setSheetId(null); setForm({ booking: b }) }}
+            onEdit={editBooking}
             onQuick={(b) => { setSheetId(null); setQuick({ unit: b.units, booking: b }) }}
             onDetails={(b) => goBooking(b.id)}
             onRelease={release}

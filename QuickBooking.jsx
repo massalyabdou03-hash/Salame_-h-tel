@@ -1,31 +1,41 @@
 import { useState } from 'react'
 import { Minus, Plus, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
-import { PAY_MODES, NR, fcfa, addDays, nightsBetween, fdate, today } from './utils'
+import { PAY_MODES, NR, known, fcfa, addDays, nightsBetween, fdate, today, isJotted } from './utils'
 import { Field, useNotify } from './ui'
 import { longDate } from './calendar'
 
-// Réservation rapide depuis le planning : on appuie sur une case vide et on ne voit que l'essentiel
-// (nom du client, logement, montant, courtier facultatif, nombre de nuits).
+// Formulaire rapide, utilisé partout (planning, calendrier, accueil, page Réservations, proformas) :
+// on ne voit que l'essentiel (nom du client, logement, montant, courtier facultatif, nuits).
 // Tout le reste (prénom, téléphone, pièce d'identité, paiement, avance, remarque) est replié et facultatif.
-export default function QuickBooking({ unit: unitProp, units = [], date, bookings, brokers = [], reloadBrokers, onDone, onMore, onCancel }) {
+//   - création : unit/date (case touchée) ou prefill (proforma)
+//   - modification : booking (le client, ou le courtier qui bloque le logement, est complété)
+export default function QuickBooking({ unit: unitProp, units = [], date, bookings, booking, prefill, brokers = [], reloadBrokers, onDone, onMore, onCancel }) {
   const { toast } = useNotify()
-  const picking = !unitProp // bouton « Écrire sur le planning » : on choisit aussi le jour
-  const [unitId, setUnitId] = useState(unitProp ? String(unitProp.id) : '')
-  const [start, setStart] = useState(date || today())
-  const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
-  const [nights, setNights] = useState(1)
-  const [brokerId, setBrokerId] = useState('')
-  const [commission, setCommission] = useState('')
+  const editing = Boolean(booking)
+  const hasClient = editing && Boolean(booking.client_id)
+  const jotted = editing && isJotted(booking) // texte écrit à la main sur le planning : il devient le nom du client
+  const locked = editing && Boolean(booking.commission_paid_at) // commission déjà versée : courtier verrouillé
+  const cl = booking?.clients
+  const picking = !editing && !unitProp && !prefill?.unit_id // on choisit aussi le jour
+
+  const [unitId, setUnitId] = useState(editing ? String(booking.unit_id) : unitProp ? String(unitProp.id) : prefill?.unit_id ? String(prefill.unit_id) : '')
+  const [start, setStart] = useState(editing ? booking.check_in : prefill?.check_in || date || today())
+  const [nights, setNights] = useState(editing ? booking.nights : prefill?.check_in && prefill?.check_out ? Math.max(1, nightsBetween(prefill.check_in, prefill.check_out)) : 1)
+  const [name, setName] = useState(editing ? (hasClient ? cl?.last_name || '' : jotted ? booking.note || '' : '') : prefill?.last_name || '')
+  const [amount, setAmount] = useState(editing ? (Number(booking.total_amount) > 0 ? String(booking.total_amount) : '') : prefill?.total ? String(prefill.total) : '')
+  const [brokerId, setBrokerId] = useState(editing && booking.broker_id ? String(booking.broker_id) : '')
+  const [commission, setCommission] = useState(editing && Number(booking.commission_amount) > 0 ? String(booking.commission_amount) : '')
   const [newBroker, setNewBroker] = useState(null) // null = fermé ; sinon le nom en cours de saisie
   // Détails repliés
-  const [first, setFirst] = useState('')
-  const [phone, setPhone] = useState('')
-  const [idNumber, setIdNumber] = useState('')
-  const [payMode, setPayMode] = useState(PAY_MODES[0])
-  const [advance, setAdvance] = useState('')
-  const [note, setNote] = useState('')
+  const [first, setFirst] = useState(editing ? cl?.first_name || '' : prefill?.first_name || '')
+  const [phone, setPhone] = useState(editing ? (known(cl?.phone) ? cl.phone : '') : prefill?.phone || '')
+  const [idNumber, setIdNumber] = useState(editing && known(cl?.id_number) ? cl.id_number : '')
+  const [payMode, setPayMode] = useState(editing ? booking.payment_mode : PAY_MODES[0])
+  const [advance, setAdvance] = useState(editing ? (Number(booking.advance) > 0 ? String(booking.advance) : '') : prefill?.advance && Number(prefill.advance) > 0 ? String(prefill.advance) : '')
+  const [note, setNote] = useState(editing && !jotted ? booking.note || '' : '')
+  // Les détails s'ouvrent d'eux-mêmes quand on complète un client auquel il manque le téléphone ou la pièce
+  const [openDetails] = useState(editing && hasClient && (!known(cl?.phone) || !known(cl?.id_number)))
   const [created, setCreated] = useState(null) // évite un doublon client si la réservation échoue
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -33,8 +43,8 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
   const unit = units.find((u) => String(u.id) === unitId)
 
   // On ne peut pas aller au-delà de la prochaine réservation du même logement
-  const next = bookings
-    .filter((b) => b.status !== 'annulee' && b.unit_id === unit?.id && b.check_in > start)
+  const next = (bookings || [])
+    .filter((b) => b.status !== 'annulee' && b.unit_id === unit?.id && b.id !== booking?.id && b.check_in > start)
     .map((b) => b.check_in)
     .sort()[0]
   const max = next ? nightsBetween(start, next) : 60
@@ -59,58 +69,87 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     setErr('')
     if (!name.trim()) return setErr('Écrivez le nom du client.')
     if (!unit) return setErr('Choisissez le logement.')
-    if (!start || start < today()) return setErr("Choisissez un jour à partir d'aujourd'hui.")
+    if (!editing && (!start || start < today())) return setErr("Choisissez un jour à partir d'aujourd'hui.")
+    if (!start) return setErr("Choisissez le jour d'arrivée.")
     if (!(total >= 0)) return setErr('Le montant doit être un nombre positif.')
     const paid = Number(advance || 0)
     if (paid > total) return setErr("L'avance ne peut pas dépasser le montant total.")
     const comm = brokerId ? Number(commission || 0) : 0
-    if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
-    if (comm > total) return setErr('La commission ne peut pas dépasser le montant total.')
+    if (!locked) {
+      if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
+      if (comm > total) return setErr('La commission ne peut pas dépasser le montant total.')
+    }
     setBusy(true)
 
     // Seul le nom est obligatoire : le reste est « Non renseigné » en base, à compléter plus tard
-    let cid = created
-    if (!cid) {
-      const r = await supabase.from('clients').insert({ last_name: name.trim(), first_name: first.trim(), phone: phone.trim() || NR, id_number: idNumber.trim() || NR }).select().single()
+    const row = { last_name: name.trim(), first_name: first.trim(), phone: phone.trim() || NR, id_number: idNumber.trim() || NR }
+    let cid = created || (hasClient ? booking.client_id : null)
+    if (hasClient) {
+      const old = cl || {}
+      if (['last_name', 'first_name', 'phone', 'id_number'].some((k) => row[k] !== (old[k] ?? ''))) {
+        const r = await supabase.from('clients').update(row).eq('id', booking.client_id)
+        if (r.error) { setBusy(false); return setErr(r.error.message) }
+      }
+    } else if (!cid) {
+      const r = await supabase.from('clients').insert(row).select().single()
       if (r.error) { setBusy(false); return setErr(r.error.message) }
       cid = r.data.id
       setCreated(cid)
     }
 
-    const res = await supabase.from('bookings').insert({
-      client_id: cid, unit_id: unit.id, check_in: start, check_out: end,
+    const payload = {
+      unit_id: unit.id, check_in: start, check_out: end,
       payment_mode: payMode, total_amount: total, advance: paid,
-      broker_id: brokerId ? Number(brokerId) : null, commission_amount: comm,
       note: note.trim() || null,
-    })
+    }
+    if (!locked) {
+      payload.broker_id = brokerId ? Number(brokerId) : null
+      payload.commission_amount = comm
+    }
+
+    let error
+    let savedId = booking?.id
+    if (editing) {
+      if (!hasClient) payload.client_id = cid
+      error = (await supabase.from('bookings').update(payload).eq('id', booking.id)).error
+    } else {
+      const ins = await supabase.from('bookings').insert({ client_id: cid, ...payload }).select('id').single()
+      error = ins.error
+      savedId = ins.data?.id
+    }
     setBusy(false)
-    if (res.error) {
+    if (error) {
       return setErr(
-        res.error.code === '23P01' ? 'Ce logement est déjà pris sur ces dates.'
-          : res.error.message.includes('commission') ? 'La commission ne peut pas dépasser le montant total.'
-            : res.error.message,
+        error.code === '23P01' ? 'Ce logement est déjà pris sur ces dates.'
+          : error.message.includes('commission') ? 'La commission ne peut pas dépasser le montant total.'
+            : error.message,
       )
     }
-    onDone()
+    onDone(savedId)
   }
+
+  const title = !editing ? (picking ? 'Écrire sur le planning' : 'Nouvelle réservation') : hasClient ? 'Modifier la réservation' : jotted ? 'Compléter la réservation' : 'Ajouter le client'
 
   return (
     <form onSubmit={submit} className="card space-y-4 !p-6">
       <div className="pr-10">
         {unit && <p className="text-sm font-semibold text-salam-700">{unit.name}</p>}
-        <h2 className="text-lg font-extrabold text-slate-900">{picking ? 'Écrire sur le planning' : 'Nouvelle réservation'}</h2>
-        {!picking && <p className="text-sm text-slate-500">À partir du {longDate(start)}</p>}
+        <h2 className="text-lg font-extrabold text-slate-900">{title}</h2>
+        {!picking && !editing && <p className="text-sm text-slate-500">À partir du {longDate(start)}</p>}
+        {jotted && <p className="text-sm text-slate-500">Vous aviez écrit : « {booking.note} ». Vérifiez le nom et ajoutez le montant.</p>}
+        {editing && !hasClient && !jotted && <p className="text-sm text-slate-500">Le logement est gardé pour {booking.broker_name || 'le courtier'}. Indiquez le client et le montant.</p>}
+        {!editing && prefill && <p className="text-sm text-slate-500">Informations reprises du proforma.</p>}
       </div>
 
       <Field label="Nom du client">
-        <input className="input" autoFocus required maxLength={80} enterKeyHint="next" placeholder="Ex. Mamadou Diallo" value={name} onChange={(e) => setName(e.target.value)} />
+        <input className="input" autoFocus={!editing} required maxLength={80} enterKeyHint="next" placeholder="Ex. Mamadou Diallo" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Logement">
           <select className="input" required value={unitId} onChange={(e) => { setUnitId(e.target.value); setNights(1) }}>
             <option value="">Choisir…</option>
-            {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance'}>{u.name}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
+            {units.map((u) => <option key={u.id} value={u.id} disabled={u.status === 'maintenance' && String(u.id) !== unitId}>{u.name}{u.status === 'maintenance' ? ' (maintenance)' : ''}</option>)}
           </select>
         </Field>
         <Field label="Montant (FCFA)">
@@ -118,33 +157,42 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         </Field>
       </div>
 
-      {picking && (
+      {(picking || editing || prefill) && (
         <Field label="Jour d'arrivée">
-          <input className="input" type="date" min={today()} value={start} onChange={(e) => { setStart(e.target.value); setNights(1) }} />
+          <input className="input" type="date" min={editing ? undefined : today()} value={start} onChange={(e) => { setStart(e.target.value); setNights(1) }} />
         </Field>
       )}
 
       <div className="space-y-3 rounded-xl border border-dashed border-slate-300 p-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Courtier (facultatif)">
-            <select className="input" value={brokerId} onChange={(e) => setBrokerId(e.target.value)}>
-              <option value="">Aucun</option>
-              {brokers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-            </select>
-          </Field>
-          {brokerId && (
-            <Field label="Commission du courtier (FCFA)">
-              <input className="input" type="number" inputMode="numeric" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} />
-            </Field>
-          )}
-        </div>
-        {newBroker === null ? (
-          <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setNewBroker('')}>+ Nouveau courtier</button>
+        {locked ? (
+          <p className="text-sm text-slate-600">
+            Commission de {fcfa(booking.commission_amount)} déjà versée à {booking.broker_name || 'un courtier'}. Pour la modifier, annulez d'abord le versement dans l'onglet Courtiers.
+          </p>
         ) : (
-          <div className="flex gap-2">
-            <input className="input" placeholder="Nom du courtier" value={newBroker} onChange={(e) => setNewBroker(e.target.value)} />
-            <button type="button" className="btn btn-secondary" onClick={addBroker}>Ajouter</button>
-          </div>
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Courtier (facultatif)">
+                <select className="input" value={brokerId} onChange={(e) => setBrokerId(e.target.value)}>
+                  <option value="">Aucun</option>
+                  {brokers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {brokerId && !brokers.some((x) => String(x.id) === brokerId) && <option value={brokerId}>{booking?.broker_name || 'Courtier'} (retiré de la liste)</option>}
+                </select>
+              </Field>
+              {brokerId && (
+                <Field label="Commission du courtier (FCFA)">
+                  <input className="input" type="number" inputMode="numeric" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} />
+                </Field>
+              )}
+            </div>
+            {newBroker === null ? (
+              <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setNewBroker('')}>+ Nouveau courtier</button>
+            ) : (
+              <div className="flex gap-2">
+                <input className="input" placeholder="Nom du courtier" value={newBroker} onChange={(e) => setNewBroker(e.target.value)} />
+                <button type="button" className="btn btn-secondary" onClick={addBroker}>Ajouter</button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -158,7 +206,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         <p className="mt-1 text-xs text-slate-500">Départ le {fdate(end)}{next && nights >= max ? ' · la nuit suivante est déjà réservée' : ''}</p>
       </div>
 
-      <details className="group rounded-xl border border-slate-200 bg-slate-50">
+      <details open={openDetails} className="group rounded-xl border border-slate-200 bg-slate-50">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-salam-700">
           <span>Plus de détails <span className="font-normal text-slate-500">(tout est facultatif)</span></span>
           <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
@@ -192,7 +240,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
         <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
         <button type="button" className="btn btn-secondary btn-lg" onClick={onCancel}>Annuler</button>
       </div>
-      {onMore && (
+      {onMore && !editing && (
         <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={onMore}>
           Client déjà enregistré ? Ouvrir le formulaire complet
         </button>

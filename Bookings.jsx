@@ -23,9 +23,15 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
   const { toast, confirm, inform } = useNotify()
   const { arrive, leave, undo } = useStayActions(reload)
   // form : null (fermé) · 'quick' (formulaire rapide) · 'new' (formulaire complet) · une réservation (modification)
-  const [form, setForm] = useState(startNew ? (startNew.proformaId ? 'new' : 'quick') : null)
+  const [form, setForm] = useState(startNew ? 'quick' : null)
   const [sheetId, setSheetId] = useState(null) // fiche d'une réservation ouverte en touchant la carte
   const [quickEdit, setQuickEdit] = useState(null) // correction d'un texte écrit à la main
+  const [qedit, setQedit] = useState(null) // modification d'une réservation avec le formulaire rapide
+  // Modifier : formulaire rapide, sauf pour une ancienne réservation (formulaire complet)
+  const editBooking = (b) => {
+    setSheetId(null)
+    if (b.legacy) { setForm(b); window.scrollTo({ top: 0, behavior: 'smooth' }) } else setQedit(b)
+  }
   const sheet = sheetId ? data.bookings.find((b) => b.id === sheetId) : null
   const [newDate, setNewDate] = useState(startNew?.date || null)
   const [fromProforma, setFromProforma] = useState(startNew?.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
@@ -36,7 +42,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
     if (!startNew) return
     setNewDate(startNew.date || null)
     setFromProforma(startNew.proformaId ? { id: startNew.proformaId, prefill: startNew.prefill } : null)
-    setForm(startNew.proformaId ? 'new' : 'quick')
+    setForm('quick')
     onStarted?.()
   }, [startNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -174,15 +180,43 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
       {form === 'quick' && (
         <Modal label="Nouvelle réservation" onClose={() => setForm(null)} width="max-w-md">
           <QuickBooking
-            key={`quick-${newDate}`}
+            key={`quick-${newDate}-${fromProforma?.id || ''}`}
             date={newDate || undefined}
+            prefill={fromProforma?.prefill}
             units={data.units}
             bookings={data.bookings}
             brokers={data.brokers}
             reloadBrokers={reload}
-            onCancel={() => setForm(null)}
+            onCancel={() => { setFromProforma(null); setForm(null) }}
             onMore={() => setForm('new')}
-            onDone={() => { toast('La réservation a été enregistrée.'); setForm(null); reload() }}
+            onDone={async (bookingId) => {
+              // Réservation créée depuis un proforma : on le marque « transformé » et on garde le lien
+              if (fromProforma?.id && bookingId) {
+                const { error } = await supabase.from('proformas').update({ status: 'acceptee', booking_id: bookingId }).eq('id', fromProforma.id)
+                if (error) toast(`La réservation est enregistrée, mais le proforma n'a pas pu être mis à jour : ${error.message}`, 'error')
+                else toast('La réservation a été enregistrée et le proforma est marqué « transformé ».')
+              } else {
+                toast('La réservation a été enregistrée.')
+              }
+              setFromProforma(null)
+              setForm(null)
+              reload()
+            }}
+          />
+        </Modal>
+      )}
+
+      {qedit && (
+        <Modal label="Modifier la réservation" onClose={() => setQedit(null)} width="max-w-md">
+          <QuickBooking
+            key={qedit.id}
+            booking={qedit}
+            units={data.units}
+            bookings={data.bookings}
+            brokers={data.brokers}
+            reloadBrokers={reload}
+            onCancel={() => setQedit(null)}
+            onDone={() => { toast('Les modifications ont été enregistrées.'); setQedit(null); reload() }}
           />
         </Modal>
       )}
@@ -199,11 +233,11 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
         </Modal>
       )}
 
-      {sheet && !form && !quickEdit && (
+      {sheet && !form && !quickEdit && !qedit && (
         <Modal label="Fiche de la réservation" onClose={() => setSheetId(null)} width="max-w-xl">
           <BookingSheet
             b={sheet}
-            onEdit={(b) => { setSheetId(null); setForm(b); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onEdit={editBooking}
             onQuick={(b) => { setSheetId(null); setQuickEdit(b) }}
             onDetails={(b) => { setSheetId(null); setLit(b.id) ; setTimeout(() => setLit(null), 4000) }}
             onRelease={(b) => { setSheetId(null); remove(b) }}
@@ -327,10 +361,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                     <>
                       <button
                         className="btn btn-secondary"
-                        onClick={() => {
-                          setForm(b)
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
-                        }}
+                        onClick={() => editBooking(b)}
                       >
                         {hold ? <><UserPlus size={16} /> Ajouter le client</> : <><Pencil size={16} /> Modifier</>}
                       </button>
