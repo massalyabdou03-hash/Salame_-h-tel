@@ -14,7 +14,7 @@ export const known = (v) => { const s = String(v ?? '').trim(); return s !== '' 
 export const PAY_MODES =['Espèces', 'Orange Money', 'Virement', 'Chèque', 'Wave']
 export const UNIT_ZONES = ['Rez-de-chaussée', 'Étage', 'Duplex', 'Appartement']
 export const UNIT_TYPES = ['Chambre simple', 'Chambre ventilée', 'Chambre double', 'Duplex', 'Appartement']
-export const EXPENSE_CATS = ['Plomberie', 'Électricité', 'Maintenance', "Produits d'entretien", 'Équipements', 'Autre']
+export const EXPENSE_CATS = ['Plomberie', 'Électricité', 'Maintenance', "Produits d'entretien", 'Équipements', 'Dette', 'Autre']
 
 export const fcfa = (n) => new Intl.NumberFormat('fr-FR').format(Math.round(Number(n) || 0)) + ' FCFA'
 export const iso = (d) => d.toISOString().slice(0, 10)

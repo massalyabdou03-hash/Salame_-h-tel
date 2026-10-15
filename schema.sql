@@ -53,7 +53,7 @@ create table invoices (
 
 create table expenses (
   id uuid primary key default gen_random_uuid(),
-  category text not null default 'Autre' check (category in ('Plomberie','Électricité','Maintenance','Produits d''entretien','Équipements','Autre')),
+  category text not null default 'Autre' check (category in ('Plomberie','Électricité','Maintenance','Produits d''entretien','Équipements','Dette','Autre')),
   amount numeric(12,0) not null check (amount > 0),
   unit_id int references units(id) on delete set null,
   description text,
