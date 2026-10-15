@@ -7,7 +7,7 @@ import BookingForm from './BookingForm'
 import QuickBooking from './QuickBooking'
 import QuickNote from './QuickNote'
 import { BookingSheet } from './Planning'
-import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
+import { fcfa, fdate, stageOf, STAGE, isHold, isJotted, isContract, clientName, sourceOf, SOURCE } from './utils'
 import { PageHeader, Badge, Empty, Modal, useNotify } from './ui'
 import { useStayActions, dakarDate, dakarTime } from './stay'
 
@@ -257,6 +257,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
           const rest = total - advance
           const hold = isHold(b)
           const jotted = isJotted(b)
+          const contract = isContract(b)
 
           return (
             <li
@@ -298,7 +299,11 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                   </p>
                   <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
                 </div>
-                {hold && total === 0 ? (
+                {contract ? (
+                  <p className="rounded-xl bg-slate-100 p-3 text-sm text-slate-700 sm:col-span-2 lg:col-span-3">
+                    Contrat annuel : payé à part, il n'est pas compté dans les montants ni dans le « reste à encaisser ».
+                  </p>
+                ) : hold && total === 0 ? (
                   <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2 lg:col-span-3">
                     {jotted
                       ? <>Écrit à la main sur le planning. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> pour compléter la réservation.</>
@@ -361,7 +366,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                         {hold ? <><UserPlus size={16} /> Ajouter le client</> : <><Pencil size={16} /> Modifier</>}
                       </button>
 
-                      {rest > 0 && (
+                      {rest > 0 && !contract && (
                         <button className="btn btn-success" onClick={() => settle(b)}>
                           <Banknote size={16} /> Encaisser le solde
                         </button>

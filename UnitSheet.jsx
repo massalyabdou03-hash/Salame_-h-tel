@@ -1,5 +1,5 @@
 import { Plus, Wrench, ChevronRight, Users, Banknote } from 'lucide-react'
-import { fcfa, fdate, today, stageOf, STAGE, isActive, clientName, sourceOf, SOURCE } from './utils'
+import { fcfa, fdate, today, stageOf, STAGE, isActive, isContract, clientName, sourceOf, SOURCE } from './utils'
 import { Badge } from './ui'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
@@ -15,7 +15,7 @@ function Row({ b, onOpen }) {
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-slate-900">{clientName(b)}</span>
           <span className="block text-xs text-slate-500">{fdate(b.check_in)} → {fdate(b.check_out)} · {b.nights} nuit{b.nights > 1 ? 's' : ''}</span>
-          {Number(b.total_amount) > 0 && (
+          {Number(b.total_amount) > 0 && !isContract(b) && (
             <span className={`block text-xs font-medium ${rest > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
               {fcfa(b.total_amount)} · {rest > 0 ? `reste ${fcfa(rest)}` : 'tout est payé'}
             </span>

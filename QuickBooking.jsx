@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Minus, Plus, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
-import { PAY_MODES, NR, known, fcfa, addDays, nightsBetween, fdate, today, isJotted } from './utils'
+import { PAY_MODES, NR, known, fcfa, addDays, nightsBetween, fdate, today, isJotted, brokerRate } from './utils'
 import { Field, useNotify } from './ui'
 import { longDate } from './calendar'
 
@@ -31,7 +31,13 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     return stored > 0 && stored !== auto ? String(stored) : ''
   })
   const [brokerId, setBrokerId] = useState(editing && booking.broker_id ? String(booking.broker_id) : '')
-  const [commission, setCommission] = useState(editing && Number(booking.commission_amount) > 0 ? String(booking.commission_amount) : '')
+  // Commission : vide = automatique (nuits × tarif du courtier selon le prix du logement) ; une valeur saisie la remplace
+  const [commission, setCommission] = useState(() => {
+    if (!editing) return ''
+    const stored = Number(booking.commission_amount)
+    const auto = booking.nights * brokerRate(units.find((u) => u.id === booking.unit_id)?.price_per_night)
+    return stored > 0 && stored !== auto ? String(stored) : ''
+  })
   const [newBroker, setNewBroker] = useState(null) // null = fermé ; sinon le nom en cours de saisie
   // Détails repliés
   const [first, setFirst] = useState(editing ? cl?.first_name || '' : prefill?.first_name || '')
@@ -60,6 +66,9 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
   const price = Number(unit?.price_per_night || 0)
   const byDefault = nights * price
   const total = amount !== '' ? Number(amount) : byDefault
+  const rate = brokerRate(price)
+  const commAuto = Math.min(nights * rate, Math.max(total, 0))
+  const commTotal = commission !== '' ? Number(commission) : commAuto
 
   const addBroker = async () => {
     const n = (newBroker || '').trim()
@@ -83,7 +92,7 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
     if (!isHold && !(total >= 0)) return setErr('Le montant doit être un nombre positif.')
     const paid = isHold ? 0 : Number(advance || 0)
     if (paid > total) return setErr("L'avance ne peut pas dépasser le montant total.")
-    const comm = brokerId && !isHold ? Number(commission || 0) : 0
+    const comm = brokerId && !isHold ? commTotal : 0
     if (!locked && !isHold) {
       if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
       if (comm > total) return setErr('La commission ne peut pas dépasser le montant total.')
@@ -195,8 +204,8 @@ export default function QuickBooking({ unit: unitProp, units = [], date, booking
                 </select>
               </Field>
               {brokerId && !isHold && (
-                <Field label="Commission du courtier (FCFA)">
-                  <input className="input" type="number" inputMode="numeric" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} />
+                <Field label="Commission du courtier (FCFA)" hint={commission === '' ? (rate > 0 ? `Automatique : ${fcfa(rate)} × ${nights} nuit${nights > 1 ? 's' : ''}` : 'Pas de prix pour ce logement') : undefined}>
+                  <input className="input" type="number" inputMode="numeric" min="0" placeholder={String(commAuto)} value={commission} onChange={(e) => setCommission(e.target.value)} />
                 </Field>
               )}
             </div>

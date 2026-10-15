@@ -43,6 +43,11 @@ export const SOURCE = {
   courtier: { label: 'Via un courtier', bar: 'border-l-4 border-gold', pill: 'bg-amber-100 text-amber-900', dot: 'bg-gold' },
   note: { label: 'Écrit à la main', bar: 'border-l-4 border-slate-300', pill: 'bg-slate-100 text-slate-700', dot: 'bg-slate-300' },
 }
+// Commission du courtier par nuit, selon le prix du logement (règle de la gérante) :
+// 10 000 → 1 000 · 12 500 → 2 000 · 15 000 et appartement → 2 500
+export const brokerRate = (price) => { const p = Number(price) || 0; return p <= 0 ? 0 : p <= 10000 ? 1000 : p <= 12500 ? 2000 : 2500 }
+// Contrat annuel (ex. « auchan ») : payé à part, il n'entre pas dans les comptes
+export const isContract = (b) => !b.client_id && !b.broker_id && /auchan/i.test(b.note || '')
 // Réservation « bloquée » par un courtier : le logement est réservé mais le client n'est pas encore connu
 export const isHold = (b) => !b.client_id
 // Nom à afficher pour une réservation (client, ou « Bloqué par … » si le client n'est pas encore connu)

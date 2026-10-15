@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Check, LogIn, LogOut, Pencil, UserPlus, Unlock, ExternalLink, Wrench, Handshake, Banknote } from 'lucide-react'
-import { fcfa, fdate, today, addDays, stageOf, isHold, isJotted, clientName, shortName, STAGE } from './utils'
+import { fcfa, fdate, today, addDays, stageOf, isHold, isJotted, isContract, clientName, shortName, STAGE } from './utils'
 import { monthOf, shiftMonth, monthTitle, weekdayIndex, longDate } from './calendar'
 import { Badge } from './ui'
 import { dakarDate, dakarTime } from './stay'
@@ -154,6 +154,7 @@ export default function Planning({ units, bookings, onFree, onOpen }) {
 export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease, onArrive, onLeave, onSettle }) {
   const hold = isHold(b)
   const jotted = isJotted(b)
+  const contract = isContract(b)
   const stage = stageOf(b)
   const total = Number(b.total_amount)
   const rest = total - Number(b.advance)
@@ -183,7 +184,11 @@ export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease
           <p className="font-semibold">{fdate(b.check_in)} → {fdate(b.check_out)}</p>
           <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
         </div>
-        {jotted && total === 0 ? (
+        {contract ? (
+          <div className="rounded-xl bg-slate-100 p-3 text-sm text-slate-700">
+            Contrat annuel : payé à part, pas compté dans les montants.
+          </div>
+        ) : jotted && total === 0 ? (
           <div className="rounded-xl bg-salam-50 p-3 text-sm text-salam-800">
             Vous avez écrit ces mots sur le planning. Quand vous avez les informations du client, appuyez sur <b>Compléter la réservation</b>.
           </div>
@@ -210,7 +215,7 @@ export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
         {canArrive && <button className="btn btn-success" onClick={() => onArrive(b)}><LogIn size={16} /> Client arrivé</button>}
         {canLeave && <button className="btn btn-secondary" onClick={() => onLeave(b)}><LogOut size={16} /> Client parti</button>}
-        {onSettle && stage !== 'annulee' && rest > 0 && <button className="btn btn-success" onClick={() => onSettle(b)}><Banknote size={16} /> Encaisser le solde</button>}
+        {onSettle && !contract && stage !== 'annulee' && rest > 0 && <button className="btn btn-success" onClick={() => onSettle(b)}><Banknote size={16} /> Encaisser le solde</button>}
         {hold ? (
           <>
             <button className="btn btn-primary" onClick={() => onEdit(b)}><UserPlus size={16} /> {jotted ? 'Compléter la réservation' : 'Ajouter le client'}</button>
