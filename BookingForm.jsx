@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-import { PAY_MODES, NR, known, fcfa, today, addDays, nightsBetween } from './utils'
+import { PAY_MODES, NR, known, fcfa, today, addDays, nightsBetween, brokerRate } from './utils'
 import { Field, useNotify } from './ui'
 import { longDate } from './calendar'
 
@@ -49,7 +49,13 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
   // Courtier. Si la commission est déjà versée, ces champs sont verrouillés.
   const locked = editing && Boolean(booking.commission_paid_at)
   const [brokerId, setBrokerId] = useState(editing && booking.broker_id ? String(booking.broker_id) : '')
-  const [commission, setCommission] = useState(editing && Number(booking.commission_amount) > 0 ? String(booking.commission_amount) : '')
+  // Commission : vide = automatique (nuits × tarif du courtier selon le prix du logement) ; une valeur saisie la remplace
+  const [commission, setCommission] = useState(() => {
+    if (!editing) return ''
+    const stored = Number(booking.commission_amount)
+    const auto = booking.nights * brokerRate(units.find((u) => u.id === booking.unit_id)?.price_per_night)
+    return stored > 0 && stored !== auto ? String(stored) : ''
+  })
   const [newBroker, setNewBroker] = useState(null) // null = fermé ; sinon le nom en cours de saisie
   // Ancienne réservation : déjà terminée, saisie seulement pour compléter l'historique
   const [legacy, setLegacy] = useState(false)
@@ -90,6 +96,9 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
   const total = f.total !== '' ? Number(f.total) : nights * Number(unit?.price_per_night || 0)
   const balance = total - Number(f.advance || 0)
   const effBroker = viaBroker ? brokerId : ''
+  const rate = brokerRate(unit?.price_per_night)
+  const commAuto = Math.min(nights * rate, Math.max(total, 0))
+  const commTotal = commission !== '' ? Number(commission) : commAuto
 
   const submit = async (e) => {
     e.preventDefault()
@@ -109,7 +118,7 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
       if (!(total > 0)) return setErr('Indiquez le montant total de cette ancienne réservation.')
     }
 
-    const comm = isHold || isLegacy ? 0 : locked ? Number(booking.commission_amount) : Number(commission || 0)
+    const comm = isHold || isLegacy ? 0 : locked ? Number(booking.commission_amount) : effBroker ? commTotal : Number(commission || 0)
     if (!locked && !isLegacy && !isHold) {
       if (!(comm >= 0)) return setErr('La commission doit être un montant positif.')
       if (comm > 0 && !effBroker) return setErr('Choisissez le courtier pour cette commission.')
@@ -230,13 +239,13 @@ export default function BookingForm({ booking, initialDate, initialUnit, prefill
                   </select>
                 </Field>
                 {brokerId && !isHold && (
-                  <Field label="Commission du courtier (FCFA)">
-                    <input className="input" type="number" inputMode="numeric" min="0" value={commission} onChange={(e) => setCommission(e.target.value)} />
+                  <Field label="Commission du courtier (FCFA)" hint={commission === '' ? (rate > 0 ? `Automatique : ${fcfa(rate)} × ${nights} nuit${nights > 1 ? 's' : ''}` : 'Pas de prix pour ce logement') : undefined}>
+                    <input className="input" type="number" inputMode="numeric" min="0" placeholder={String(commAuto)} value={commission} onChange={(e) => setCommission(e.target.value)} />
                   </Field>
                 )}
               </div>
-              {brokerId && !isHold && Number(commission) > 0 && total > 0 && (
-                <p className="text-xs text-slate-500">Cela représente environ {Math.round((Number(commission) / total) * 100)} % du montant total.</p>
+              {brokerId && !isHold && commTotal > 0 && total > 0 && (
+                <p className="text-xs text-slate-500">Cela représente environ {Math.round((commTotal / total) * 100)} % du montant total.</p>
               )}
               {newBroker === null ? (
                 <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setNewBroker('')}>+ Nouveau courtier</button>

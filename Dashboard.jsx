@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
+import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, isContract, clientName, sourceOf, SOURCE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
 import { DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
@@ -43,7 +43,7 @@ function DayHistory({ bookings, expenses }) {
     ...bookings.filter((b) => b.checked_out_at && dakarDay(b.checked_out_at) === day).map((b) => ({ id: `o${b.id}`, at: b.checked_out_at, s: b, out: true })),
   ].sort((x, y) => new Date(y.at) - new Date(x.at))
 
-  const fresh = events.filter((x) => x.b && x.b.status !== 'annulee')
+  const fresh = events.filter((x) => x.b && x.b.status !== 'annulee' && !isContract(x.b))
   const booked = fresh.reduce((sum, x) => sum + Number(x.b.total_amount), 0)
   const spent = events.filter((x) => x.e).reduce((sum, x) => sum + Number(x.e.amount), 0)
 
@@ -123,7 +123,7 @@ function PastBookings({ bookings }) {
     const past = kind === 'all' ? st === 'terminee' || st === 'annulee' : st === kind
     return past && (!month || b.check_in.startsWith(month))
   })
-  const counted = rows.filter((b) => b.status !== 'annulee')
+  const counted = rows.filter((b) => b.status !== 'annulee' && !isContract(b))
   const total = counted.reduce((sum, b) => sum + Number(b.total_amount), 0)
   const unpaid = counted.reduce((sum, b) => sum + Number(b.total_amount) - Number(b.advance), 0)
 
@@ -183,7 +183,8 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
   const { arrive, leave, settle } = useStayActions(reload)
   const t = today()
   const month = t.slice(0, 7)
-  const live = bookings.filter((b) => b.status !== 'annulee')
+  // Les contrats annuels (ex. auchan) sont payés à part : ils n'entrent pas dans les chiffres
+  const live = bookings.filter((b) => b.status !== 'annulee' && !isContract(b))
   const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
   const [sheetId, setSheetId] = useState(null)
   const [unitId, setUnitId] = useState(null) // fiche d'un logement, ouverte en touchant sa carte
