@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LayoutDashboard, CalendarPlus, FileText, Users, Receipt, Handshake, Settings, LogOut, Hotel } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, FileText, Users, Receipt, Handshake, Settings, LogOut, Hotel, MoreHorizontal } from 'lucide-react'
 import { supabase } from './supabase'
 import { GIE } from './utils'
 import { NotifyProvider, Field } from './ui'
@@ -21,6 +21,11 @@ const TABS = [
   ['cou', 'Courtiers', Handshake],
   ['set', 'Réglages', Settings],
 ]
+
+// Pages de tous les jours (menu du bas) et pages plus rares (rangées dans « Plus »)
+const MAIN_IDS = ['dash', 'res', 'cli']
+const MAIN = TABS.filter(([id]) => MAIN_IDS.includes(id))
+const OTHER = TABS.filter(([id]) => !MAIN_IDS.includes(id))
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -66,6 +71,7 @@ function Login() {
 function Shell() {
   const [session, setSession] = useState(undefined)
   const [tab, setTab] = useState('dash')
+  const [more, setMore] = useState(false) // feuille « Plus » du menu du bas
   const [doc, setDoc] = useState(null)
   const [loadErr, setLoadErr] = useState('')
   const [newReq, setNewReq] = useState(null) // demande de nouvelle réservation depuis l'accueil : { date }
@@ -157,7 +163,10 @@ function Shell() {
             <p className="mt-1 text-xs text-salam-100">Gérante : {info.manager}</p>
           </div>
           <nav className="flex-1 space-y-1 px-3" aria-label="Menu principal">
-            {TABS.map(([id, label, Icon]) => {
+            {[...MAIN, null, ...OTHER].map((item) => {
+              // null = séparateur entre les pages de tous les jours et les pages plus rares
+              if (!item) return <p key="sep" className="px-4 pb-1 pt-5 text-[11px] font-bold uppercase tracking-wider text-salam-100/70">Autres</p>
+              const [id, label, Icon] = item
               const active = tab === id
               return (
                 <button
@@ -202,22 +211,51 @@ function Shell() {
           {page}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden" aria-label="Menu principal">
+        {/* Feuille « Plus » : les pages qu'on ouvre rarement */}
+        {more && (
+          <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMore(false)}>
+            <div className="absolute inset-0 bg-slate-900/40" />
+            <div
+              role="dialog"
+              aria-label="Autres pages"
+              className="absolute inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] mx-3 space-y-1 rounded-3xl bg-white p-3 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {OTHER.map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  onClick={() => { setTab(id); setMore(false); window.scrollTo({ top: 0 }) }}
+                  aria-current={tab === id ? 'page' : undefined}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-base font-semibold transition-colors ${
+                    tab === id ? 'bg-salam-50 text-salam-700' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon size={22} /> {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <nav className="fixed inset-x-0 bottom-0 z-[45] border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-10px_25px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden" aria-label="Menu principal">
           <div className="mx-auto flex max-w-5xl items-center gap-1">
-            {TABS.filter(([id]) => id !== 'pro').map(([id, label, Icon]) => {
-              const active = tab === id || (id === 'res' && tab === 'pro')
+            {[...MAIN, ['more', 'Plus', MoreHorizontal]].map(([id, label, Icon]) => {
+              const isMore = id === 'more'
+              // « Plus » est allumé quand on est sur une des pages rangées dedans (ou quand la feuille est ouverte)
+              const active = isMore ? more || OTHER.some(([o]) => o === tab) : !more && tab === id
               return (
                 <button
                   key={id}
-                  onClick={() => setTab(id)}
-                  aria-current={active ? 'page' : undefined}
-                  className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-semibold transition-colors ${
+                  onClick={() => (isMore ? setMore(!more) : (setMore(false), setTab(id)))}
+                  aria-current={active && !isMore ? 'page' : undefined}
+                  aria-expanded={isMore ? more : undefined}
+                  className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold transition-colors ${
                     active
                       ? 'bg-salam-50 text-salam-700 shadow-sm ring-1 ring-salam-100'
                       : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
-                  <Icon size={20} />
+                  <Icon size={22} />
                   <span>{label}</span>
                 </button>
               )

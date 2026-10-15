@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil } from 'lucide-react'
+import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
@@ -14,6 +14,22 @@ import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
 const LABEL = { occupe: 'Occupé', disponible: 'Libre', maintenance: 'En maintenance' }
+
+// Bloc replié par défaut : on touche le titre pour l'ouvrir (garde l'Accueil court)
+function Fold({ title, hint, children }) {
+  return (
+    <details className="group card !p-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="block text-lg font-bold text-slate-900">{title}</span>
+          {hint && <span className="block text-sm text-slate-500">{hint}</span>}
+        </span>
+        <ChevronDown size={20} className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="p-4 pt-0">{children}</div>
+    </details>
+  )
+}
 
 // ---------- Historique ----------
 // Ce qui a été enregistré un jour donné : nouvelles réservations et dépenses, avec heure et date
@@ -32,7 +48,7 @@ function DayHistory({ bookings, expenses }) {
   const spent = events.filter((x) => x.e).reduce((sum, x) => sum + Number(x.e.amount), 0)
 
   return (
-    <div className="card space-y-3">
+    <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
         <Field label="Choisir un jour" className="min-w-0">
           <input className="input min-w-0" type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value || today())} />
@@ -322,6 +338,10 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </Modal>
       )}
 
+      <Section title="Aujourd'hui" hint="Qui arrive, qui part et qui est déjà sur place.">
+        <DayPanel bookings={bookings} day={t} onArrive={arrive} onLeave={leave} />
+      </Section>
+
       <Section
         title={view === 'planning' ? 'Planning des logements' : 'Calendrier des réservations'}
         hint={view === 'planning' ? 'Qui occupe quel logement, jour par jour.' : 'Les arrivées sont en vert, les départs en orange.'}
@@ -393,13 +413,13 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </div>
       </Section>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <Section title="Historique de la journée" hint="Ce qui a été enregistré ce jour-là, avec l'heure.">
+      <div className="space-y-3">
+        <Fold title="Historique de la journée" hint="Ce qui a été enregistré ce jour-là, avec l'heure.">
           <DayHistory bookings={bookings} expenses={expenses} />
-        </Section>
-        <Section title="Réservations passées" hint="Les séjours terminés ou annulés.">
+        </Fold>
+        <Fold title="Réservations passées" hint="Les séjours terminés ou annulés.">
           <PastBookings bookings={bookings} />
-        </Section>
+        </Fold>
       </div>
     </div>
   )
