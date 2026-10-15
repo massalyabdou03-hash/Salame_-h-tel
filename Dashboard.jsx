@@ -3,7 +3,7 @@ import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank
 import { supabase } from './supabase'
 import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
-import { MonthCalendar, DayPanel } from './Calendrier'
+import { DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
 import QuickNote from './QuickNote'
@@ -180,12 +180,10 @@ function PastBookings({ bookings }) {
 export default function Dashboard({ data, reload, goNew, goBooking }) {
   const { units, bookings, expenses } = data
   const { toast, confirm } = useNotify()
-  const { arrive, leave } = useStayActions(reload)
+  const { arrive, leave, settle } = useStayActions(reload)
   const t = today()
   const month = t.slice(0, 7)
   const live = bookings.filter((b) => b.status !== 'annulee')
-  const [day, setDay] = useState(t)
-  const [view, setView] = useState('planning')
   const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
   const [sheetId, setSheetId] = useState(null)
   const [unitId, setUnitId] = useState(null) // fiche d'un logement, ouverte en touchant sa carte
@@ -334,6 +332,7 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             onRelease={release}
             onArrive={arrive}
             onLeave={leave}
+            onSettle={settle}
           />
         </Modal>
       )}
@@ -342,30 +341,11 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         <DayPanel bookings={bookings} day={t} onArrive={arrive} onLeave={leave} />
       </Section>
 
-      <Section
-        title={view === 'planning' ? 'Planning des logements' : 'Calendrier des réservations'}
-        hint={view === 'planning' ? 'Qui occupe quel logement, jour par jour.' : 'Les arrivées sont en vert, les départs en orange.'}
-        action={
-          <div className="flex flex-wrap gap-2">
-            {[['planning', 'Planning des logements'], ['mois', 'Calendrier du mois']].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
-            ))}
-          </div>
-        }
-      >
-        {view === 'planning' && (
-          <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={() => setQuick({ unit: null, date: t })}>
-            <Pencil size={18} /> Écrire sur le planning
-          </button>
-        )}
-        {view === 'planning' ? (
-          <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
-        ) : (
-          <>
-            <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
-            <DayPanel bookings={bookings} day={day} onNew={(d) => { setSheetId(null); setForm(null); setQuick({ unit: null, date: d }) }} onArrive={arrive} onLeave={leave} />
-          </>
-        )}
+      <Section title="Planning des logements" hint="Qui occupe quel logement, jour par jour.">
+        <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={() => setQuick({ unit: null, date: t })}>
+          <Pencil size={18} /> Écrire sur le planning
+        </button>
+        <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
       </Section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -21,7 +21,7 @@ const FILTERS = [
 
 export default function Bookings({ data, reload, openDoc, startNew, onStarted, goPro, focusId, onFocused }) {
   const { toast, confirm, inform } = useNotify()
-  const { arrive, leave, undo } = useStayActions(reload)
+  const { arrive, leave, undo, settle } = useStayActions(reload)
   // form : null (fermé) · 'quick' (formulaire rapide) · 'new' (formulaire complet) · une réservation (modification)
   const [form, setForm] = useState(startNew ? 'quick' : null)
   const [sheetId, setSheetId] = useState(null) // fiche d'une réservation ouverte en touchant la carte
@@ -119,20 +119,6 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
       return toast(`La suppression n'a pas pu être faite : ${error.message}`, 'error')
     }
     toast(isHold(b) ? 'Le logement est de nouveau libre.' : 'La réservation a été supprimée.')
-    reload()
-  }
-
-  const settle = async (b) => {
-    const remaining = Number(b.total_amount) - Number(b.advance)
-    const ok = await confirm({
-      title: 'Encaisser le solde ?',
-      message: `${clientName(b)} a payé les ${fcfa(remaining)} qui restaient ?\n\nLa réservation sera marquée comme entièrement payée.`,
-      confirmLabel: 'Oui, solde encaissé',
-    })
-    if (!ok) return
-    const { error } = await supabase.from('bookings').update({ advance: b.total_amount }).eq('id', b.id)
-    if (error) return toast(`Le paiement n'a pas pu être enregistré : ${error.message}`, 'error')
-    toast(`Solde de ${fcfa(remaining)} encaissé.`)
     reload()
   }
 
@@ -243,6 +229,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
             onRelease={(b) => { setSheetId(null); remove(b) }}
             onArrive={arrive}
             onLeave={leave}
+            onSettle={settle}
           />
         </Modal>
       )}
@@ -374,7 +361,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                         {hold ? <><UserPlus size={16} /> Ajouter le client</> : <><Pencil size={16} /> Modifier</>}
                       </button>
 
-                      {!hold && rest > 0 && (
+                      {rest > 0 && (
                         <button className="btn btn-success" onClick={() => settle(b)}>
                           <Banknote size={16} /> Encaisser le solde
                         </button>

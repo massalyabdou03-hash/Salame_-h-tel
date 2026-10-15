@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Check, LogIn, LogOut, Pencil, UserPlus, Unlock, ExternalLink, Wrench, Handshake } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, LogIn, LogOut, Pencil, UserPlus, Unlock, ExternalLink, Wrench, Handshake, Banknote } from 'lucide-react'
 import { fcfa, fdate, today, addDays, stageOf, isHold, isJotted, clientName, shortName, STAGE } from './utils'
 import { monthOf, shiftMonth, monthTitle, weekdayIndex, longDate } from './calendar'
 import { Badge } from './ui'
@@ -151,7 +151,7 @@ export default function Planning({ units, bookings, onFree, onOpen }) {
 }
 
 // ---------- Fiche d'une réservation (ouverte depuis le planning) ----------
-export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease, onArrive, onLeave }) {
+export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease, onArrive, onLeave, onSettle }) {
   const hold = isHold(b)
   const jotted = isJotted(b)
   const stage = stageOf(b)
@@ -210,6 +210,7 @@ export function BookingSheet({ b, onClose, onEdit, onQuick, onDetails, onRelease
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
         {canArrive && <button className="btn btn-success" onClick={() => onArrive(b)}><LogIn size={16} /> Client arrivé</button>}
         {canLeave && <button className="btn btn-secondary" onClick={() => onLeave(b)}><LogOut size={16} /> Client parti</button>}
+        {onSettle && stage !== 'annulee' && rest > 0 && <button className="btn btn-success" onClick={() => onSettle(b)}><Banknote size={16} /> Encaisser le solde</button>}
         {hold ? (
           <>
             <button className="btn btn-primary" onClick={() => onEdit(b)}><UserPlus size={16} /> {jotted ? 'Compléter la réservation' : 'Ajouter le client'}</button>
