@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, LogIn, LogOut, BedDouble, Plus } from 'lucide-react'
-import { fcfa, today, clientName, isHold, sourceOf, SOURCE } from './utils'
+import { fcfa, today, clientName, isHold, isContract, sourceOf, SOURCE } from './utils'
 import { WEEKDAYS, monthGrid, monthOf, shiftMonth, monthTitle, dayEvents, longDate, shortDate } from './calendar'
 import { dakarTime } from './stay'
 
@@ -144,7 +144,8 @@ function DayList({ title, Icon, rows, tone, actions }) {
 }
 
 export function DayPanel({ bookings, day, onNew, onArrive, onLeave }) {
-  const ev = dayEvents(bookings, day)
+  // Les contrats annuels (ex. auchan) ne s'affichent pas dans « Aujourd'hui » : ils sont payés à part
+  const ev = dayEvents(bookings.filter((b) => !isContract(b)), day)
   const isPast = day < today()
   const isToday = day === today()
   // Les heures d'arrivée et de départ ne s'enregistrent que le jour même
