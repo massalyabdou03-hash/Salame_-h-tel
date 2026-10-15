@@ -311,7 +311,7 @@ export default function Bookings({ data, reload, openDoc, startNew, onStarted, g
                   </p>
                   <p className="text-xs text-slate-500">{b.nights} nuit{b.nights > 1 ? 's' : ''}</p>
                 </div>
-                {hold ? (
+                {hold && total === 0 ? (
                   <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2 lg:col-span-3">
                     {jotted
                       ? <>Écrit à la main sur le planning. Aucun prix pour l'instant : appuyez sur <b>Ajouter le client</b> pour compléter la réservation.</>

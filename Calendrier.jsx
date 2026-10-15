@@ -122,7 +122,7 @@ function DayList({ title, Icon, rows, tone, actions }) {
                 <p className="font-semibold">{b.units?.name} — {who(b)}</p>
                 <p className="text-xs text-slate-500">
                   {shortDate(b.check_in)} → {shortDate(b.check_out)}
-                  {isHold(b)
+                  {isHold(b) && Number(b.total_amount) === 0
                     ? <span className="font-medium text-amber-700"> · client à préciser</span>
                     : rest > 0 ? <span className="font-medium text-red-700"> · reste à payer {fcfa(rest)}</span> : <span className="text-emerald-700"> · soldé</span>}
                 </p>
