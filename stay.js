@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { useNotify } from './ui'
-import { clientName } from './utils'
+import { clientName, fcfa } from './utils'
 
 // Les heures sont affichées à l'heure de Dakar, quelle que soit l'heure réglée sur l'ordinateur
 const DAKAR = { timeZone: 'Africa/Dakar' }
@@ -64,5 +64,20 @@ export function useStayActions(reload) {
     reload()
   }
 
-  return { arrive, leave, undo }
+  // Marque la réservation comme entièrement payée (avance = total)
+  const settle = async (b) => {
+    const remaining = Number(b.total_amount) - Number(b.advance)
+    const ok = await confirm({
+      title: 'Encaisser le solde ?',
+      message: `${who(b)} a payé les ${fcfa(remaining)} qui restaient ?\n\nLa réservation sera marquée comme entièrement payée.`,
+      confirmLabel: 'Oui, solde encaissé',
+    })
+    if (!ok) return
+    const { error } = await supabase.from('bookings').update({ advance: b.total_amount }).eq('id', b.id)
+    if (error) return toast(`Le paiement n'a pas pu être enregistré : ${error.message}`, 'error')
+    toast(`Solde de ${fcfa(remaining)} encaissé.`)
+    reload()
+  }
+
+  return { arrive, leave, undo, settle }
 }

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil } from 'lucide-react'
+import { CalendarPlus, LogIn, LogOut, TrendingDown, Wallet, Handshake, PiggyBank, BedDouble, Banknote, Wrench, Plus, Pencil, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
 import { fcfa, fdate, today, isActive, stageOf, STAGE, isHold, isJotted, clientName, sourceOf, SOURCE } from './utils'
 import { Field, PageHeader, Section, Stat, Badge, Empty, Modal, useNotify } from './ui'
-import { MonthCalendar, DayPanel } from './Calendrier'
+import { DayPanel } from './Calendrier'
 import Planning, { BookingSheet } from './Planning'
 import BookingForm from './BookingForm'
 import QuickNote from './QuickNote'
@@ -14,6 +14,22 @@ import { useStayActions, dakarDay, dakarDate, dakarTime } from './stay'
 
 const BADGE = { occupe: 'bg-red-100 text-red-800', disponible: 'bg-emerald-100 text-emerald-800', maintenance: 'bg-amber-100 text-amber-800' }
 const LABEL = { occupe: 'Occupé', disponible: 'Libre', maintenance: 'En maintenance' }
+
+// Bloc replié par défaut : on touche le titre pour l'ouvrir (garde l'Accueil court)
+function Fold({ title, hint, children }) {
+  return (
+    <details className="group card !p-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="block text-lg font-bold text-slate-900">{title}</span>
+          {hint && <span className="block text-sm text-slate-500">{hint}</span>}
+        </span>
+        <ChevronDown size={20} className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="p-4 pt-0">{children}</div>
+    </details>
+  )
+}
 
 // ---------- Historique ----------
 // Ce qui a été enregistré un jour donné : nouvelles réservations et dépenses, avec heure et date
@@ -32,7 +48,7 @@ function DayHistory({ bookings, expenses }) {
   const spent = events.filter((x) => x.e).reduce((sum, x) => sum + Number(x.e.amount), 0)
 
   return (
-    <div className="card space-y-3">
+    <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
         <Field label="Choisir un jour" className="min-w-0">
           <input className="input min-w-0" type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value || today())} />
@@ -164,12 +180,10 @@ function PastBookings({ bookings }) {
 export default function Dashboard({ data, reload, goNew, goBooking }) {
   const { units, bookings, expenses } = data
   const { toast, confirm } = useNotify()
-  const { arrive, leave } = useStayActions(reload)
+  const { arrive, leave, settle } = useStayActions(reload)
   const t = today()
   const month = t.slice(0, 7)
   const live = bookings.filter((b) => b.status !== 'annulee')
-  const [day, setDay] = useState(t)
-  const [view, setView] = useState('planning')
   const [form, setForm] = useState(null) // { booking } pour modifier, { date, unit_id } pour une nouvelle réservation
   const [sheetId, setSheetId] = useState(null)
   const [unitId, setUnitId] = useState(null) // fiche d'un logement, ouverte en touchant sa carte
@@ -318,34 +332,20 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
             onRelease={release}
             onArrive={arrive}
             onLeave={leave}
+            onSettle={settle}
           />
         </Modal>
       )}
 
-      <Section
-        title={view === 'planning' ? 'Planning des logements' : 'Calendrier des réservations'}
-        hint={view === 'planning' ? 'Qui occupe quel logement, jour par jour.' : 'Les arrivées sont en vert, les départs en orange.'}
-        action={
-          <div className="flex flex-wrap gap-2">
-            {[['planning', 'Planning des logements'], ['mois', 'Calendrier du mois']].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} className={`badge-filter ${view === id ? 'badge-filter-active' : 'badge-filter-idle'}`}>{label}</button>
-            ))}
-          </div>
-        }
-      >
-        {view === 'planning' && (
-          <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={() => setQuick({ unit: null, date: t })}>
-            <Pencil size={18} /> Écrire sur le planning
-          </button>
-        )}
-        {view === 'planning' ? (
-          <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
-        ) : (
-          <>
-            <MonthCalendar bookings={bookings} selected={day} onSelect={setDay} />
-            <DayPanel bookings={bookings} day={day} onNew={(d) => { setSheetId(null); setForm(null); setQuick({ unit: null, date: d }) }} onArrive={arrive} onLeave={leave} />
-          </>
-        )}
+      <Section title="Aujourd'hui" hint="Qui arrive, qui part et qui est déjà sur place.">
+        <DayPanel bookings={bookings} day={t} onArrive={arrive} onLeave={leave} />
+      </Section>
+
+      <Section title="Planning des logements" hint="Qui occupe quel logement, jour par jour.">
+        <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={() => setQuick({ unit: null, date: t })}>
+          <Pencil size={18} /> Écrire sur le planning
+        </button>
+        <Planning units={units} bookings={bookings} onFree={(u, d) => { setSheetId(null); setQuick({ unit: u, date: d }) }} onOpen={(b) => setSheetId(b.id)} />
       </Section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -393,13 +393,13 @@ export default function Dashboard({ data, reload, goNew, goBooking }) {
         </div>
       </Section>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <Section title="Historique de la journée" hint="Ce qui a été enregistré ce jour-là, avec l'heure.">
+      <div className="space-y-3">
+        <Fold title="Historique de la journée" hint="Ce qui a été enregistré ce jour-là, avec l'heure.">
           <DayHistory bookings={bookings} expenses={expenses} />
-        </Section>
-        <Section title="Réservations passées" hint="Les séjours terminés ou annulés.">
+        </Fold>
+        <Fold title="Réservations passées" hint="Les séjours terminés ou annulés.">
           <PastBookings bookings={bookings} />
-        </Section>
+        </Fold>
       </div>
     </div>
   )
