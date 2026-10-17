@@ -29,11 +29,11 @@ function TopStamp() {
   return <img src={CACHET.src} alt="Cachet" className="w-24 shrink-0 sm:w-32" />
 }
 
-// Signature de la gérante, avec le cachet posé par-dessus (le cachet est tamponné sur la signature), comme sur les factures papier
+// Signature de la gérante (petite), avec le cachet posé par-dessus ; le cachet a la même taille que celui du haut
 function Seal({ className = '' }) {
   return (
-    <div className={`relative mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] ${className}`}>
-      <img src={SIGNATURE.src} alt="Signature" className="absolute left-1/2 top-1/2 w-[76%] -translate-x-1/2 -translate-y-1/2" />
+    <div className={`relative mx-auto mt-2 aspect-[3/2] w-24 sm:w-32 ${className}`}>
+      <img src={SIGNATURE.src} alt="Signature" className="absolute left-1/2 top-1/2 w-[56%] -translate-x-1/2 -translate-y-1/2" />
       <img src={CACHET.src} alt="Cachet" className="absolute left-0 top-1/2 w-full -translate-y-1/2" />
     </div>
   )
@@ -160,12 +160,12 @@ function Contract({ info, b }) {
         <div>
           <p className="font-semibold">Le bailleur</p>
           <p className="text-xs text-slate-500">{info.manager}</p>
-          <Seal className="border-b" />
+          <div className="border-b"><Seal /></div>
         </div>
         <div>
           <p className="font-semibold">Le client</p>
           <p className="text-xs text-slate-500">« Lu et approuvé »</p>
-          <div className="mx-auto mt-2 aspect-[3/2] w-full max-w-[15rem] border-b" />
+          <div className="mx-auto mt-2 h-16 w-full max-w-[15rem] border-b sm:h-[5.34rem]" />
         </div>
       </div>
     </>
