@@ -1,5 +1,5 @@
 import { Printer, ArrowLeft, Share2, Download } from 'lucide-react'
-import { fcfa, fdate, known } from './utils'
+import { fcfa, fdate, known, proformaLines } from './utils'
 
 // Information absente (client venu sans pièce, par exemple) : points à remplir à la main sur le contrat imprimé
 const BLANK = '..............................'
@@ -98,13 +98,20 @@ function Proforma({ info, p }) {
           <tr><th className="p-2 text-left">Libellé</th><th className="p-2">Séjour</th><th className="p-2">Nuitées</th><th className="p-2">Prix / nuit</th><th className="p-2 text-right">Montant</th></tr>
         </thead>
         <tbody>
-          <tr className="border-b">
-            <td className="p-2">Séjour – {p.unit_label}</td>
-            <td className="p-2 text-center">{fdate(p.check_in)} au {fdate(p.check_out)}</td>
-            <td className="p-2 text-center">{p.nights}</td>
-            <td className="p-2 text-center">{fcfa(p.price_per_night)}</td>
-            <td className="p-2 text-right">{fcfa(p.total_amount)}</td>
-          </tr>
+          {proformaLines(p).map((l, i) => l.adjust ? (
+            <tr key={i} className="border-b">
+              <td className="p-2" colSpan={4}>{l.unit_label}</td>
+              <td className="p-2 text-right">{fcfa(l.amount)}</td>
+            </tr>
+          ) : (
+            <tr key={i} className="border-b">
+              <td className="p-2">Séjour – {l.unit_label}</td>
+              <td className="p-2 text-center">{fdate(p.check_in)} au {fdate(p.check_out)}</td>
+              <td className="p-2 text-center">{p.nights}</td>
+              <td className="p-2 text-center">{fcfa(l.price)}</td>
+              <td className="p-2 text-right">{fcfa(l.amount)}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
       <div className="ml-auto mt-4 w-80 space-y-1 text-sm">
