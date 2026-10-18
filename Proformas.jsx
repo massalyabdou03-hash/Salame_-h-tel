@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Plus, Pencil, FileText, CalendarCheck, Trash2, Ban, CalendarDays } from 'lucide-react'
+import { Plus, Pencil, FileText, CalendarCheck, Trash2, Ban, CalendarDays, X } from 'lucide-react'
 import { supabase } from './supabase'
-import { fcfa, fdate, today, addDays, nightsBetween } from './utils'
+import { fcfa, fdate, today, addDays, nightsBetween, proformaLines, PAY_MODES, NR } from './utils'
 import { Field, PageHeader, Badge, Empty, useNotify } from './ui'
 
 const STATUS = {
@@ -22,57 +22,74 @@ const FILTERS = [
 
 function ProformaForm({ proforma, units, bookings, onDone, onCancel }) {
   const editing = Boolean(proforma)
+  // Un proforma peut contenir plusieurs logements (association, groupe…) : une ligne par logement.
+  // price vide = prix du logement (Réglages) ; une valeur saisie le remplace.
+  const startLines = () => {
+    if (!editing) return [{ unit_id: '', price: '' }]
+    const lines = proformaLines(proforma).filter((l) => !l.adjust)
+    return lines.map((l) => ({ unit_id: l.unit_id ? String(l.unit_id) : '', price: String(l.price) }))
+  }
+  const [lines, setLines] = useState(startLines)
+  // Montant déjà enregistré : gardé tel quel s'il a été négocié (différent de la somme des logements) ou pour un ancien proforma
+  const savedTotal = !editing ? '' : !(proforma.items || []).length || Number(proforma.total_amount) !== proformaLines(proforma).reduce((s, l) => s + l.amount, 0) ? String(proforma.total_amount) : ''
   const [f, setF] = useState(
     editing
       ? {
           last_name: proforma.last_name, first_name: proforma.first_name || '', phone: proforma.phone || '',
-          unit_id: proforma.unit_id ? String(proforma.unit_id) : '', check_in: proforma.check_in, check_out: proforma.check_out,
-          price: String(proforma.price_per_night), total: String(proforma.total_amount), deposit: String(proforma.deposit),
-          valid_until: proforma.valid_until, note: proforma.note || '',
+          check_in: proforma.check_in, check_out: proforma.check_out,
+          total: savedTotal, deposit: String(proforma.deposit), valid_until: proforma.valid_until, note: proforma.note || '',
         }
       : {
-          last_name: '', first_name: '', phone: '', unit_id: '', check_in: today(), check_out: addDays(today(), 1),
-          price: '', total: '', deposit: '0', valid_until: addDays(today(), 7), note: '',
+          last_name: '', first_name: '', phone: '', check_in: today(), check_out: addDays(today(), 1),
+          total: '', deposit: '0', valid_until: addDays(today(), 7), note: '',
         }
   )
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const setLine = (i, patch) => setLines(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)))
 
-  const unit = units.find((u) => String(u.id) === f.unit_id)
   const nights = nightsBetween(f.check_in, f.check_out)
-  const price = f.price !== '' ? Number(f.price) : Number(unit?.price_per_night || 0)
-  const total = f.total !== '' ? Number(f.total) : nights * price
+  const rows = lines.map((l) => {
+    const unit = units.find((u) => String(u.id) === l.unit_id)
+    const price = l.price !== '' ? Number(l.price) : Number(unit?.price_per_night || 0)
+    return { ...l, unit, price, amount: Math.max(nights, 0) * price }
+  })
+  const sum = rows.reduce((s, r) => s + r.amount, 0)
+  // Montant total : somme des logements, sauf si un autre montant est écrit (remise, prix négocié)
+  const total = f.total !== '' ? Number(f.total) : sum
 
-  // Simple avertissement (ne bloque pas) : le logement est-il déjà pris sur ces dates ?
-  const busyDates = unit && nights > 0 && bookings.some((b) => b.status !== 'annulee' && b.unit_id === unit.id && b.check_in < f.check_out && f.check_in < b.check_out)
+  // Simple avertissement (ne bloque pas) : un logement est-il déjà pris sur ces dates ?
+  const taken = nights > 0
+    ? rows.filter((r) => r.unit && bookings.some((b) => b.status !== 'annulee' && b.unit_id === r.unit.id && b.check_in < f.check_out && f.check_in < b.check_out)).map((r) => r.unit.name)
+    : []
 
-  const pickUnit = (e) => {
-    const u = units.find((x) => String(x.id) === e.target.value)
-    setF({ ...f, unit_id: e.target.value, price: u ? String(u.price_per_night) : '', total: '' })
-  }
+  const pickUnit = (i) => (e) => setLine(i, { unit_id: e.target.value, price: '' })
 
   const submit = async (e) => {
     e.preventDefault()
     setErr('')
     if (!f.last_name.trim()) return setErr('Écrivez le nom du client.')
-    if (!unit) return setErr('Choisissez un logement.')
+    if (rows.some((r) => !r.unit)) return setErr('Choisissez le logement de chaque ligne.')
+    if (new Set(rows.map((r) => r.unit.id)).size < rows.length) return setErr('Un logement est choisi deux fois.')
     if (nights < 1) return setErr("La date de départ doit être après la date d'arrivée.")
     if (!(total >= 0)) return setErr('Le montant total est incorrect.')
     const deposit = Number(f.deposit || 0)
     if (deposit < 0 || deposit > total) return setErr("L'acompte ne peut pas dépasser le montant total.")
-    if (f.valid_until < today()) return setErr('La date de validité est déjà passée.')
+    if (f.valid_until < today() && !(editing && f.valid_until === proforma.valid_until)) return setErr('La date de validité est déjà passée.')
 
     setBusy(true)
+    const first = rows[0]
     const payload = {
       last_name: f.last_name.trim(),
       first_name: f.first_name.trim(),
       phone: f.phone.trim() || null,
-      unit_id: unit.id,
-      unit_label: `${unit.name} (${unit.type})`,
+      unit_id: first.unit.id,
+      unit_label: rows.length === 1 ? `${first.unit.name} (${first.unit.type})` : rows.map((r) => r.unit.name).join(', '),
+      items: rows.map((r) => ({ unit_id: r.unit.id, unit_label: `${r.unit.name} (${r.unit.type})`, price: r.price, amount: r.amount })),
       check_in: f.check_in,
       check_out: f.check_out,
-      price_per_night: price,
+      price_per_night: first.price,
       total_amount: total,
       deposit,
       valid_until: f.valid_until,
@@ -94,33 +111,48 @@ function ProformaForm({ proforma, units, bookings, onDone, onCancel }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Nom du client"><input className="input" required value={f.last_name} onChange={set('last_name')} /></Field>
+        <Field label="Nom du client (ou de l'association)"><input className="input" required value={f.last_name} onChange={set('last_name')} /></Field>
         <Field label="Prénom (facultatif)"><input className="input" value={f.first_name} onChange={set('first_name')} /></Field>
         <Field label="Téléphone (facultatif)"><input className="input" type="tel" value={f.phone} onChange={set('phone')} /></Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Logement">
-          <select className="input" required value={f.unit_id} onChange={pickUnit}>
-            <option value="">Choisir…</option>
-            {units.map((u) => <option key={u.id} value={u.id}>{u.name} — {u.type}</option>)}
-          </select>
-        </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Date d'arrivée"><input className="input" type="date" required value={f.check_in} onChange={set('check_in')} /></Field>
         <Field label="Date de départ"><input className="input" type="date" required value={f.check_out} onChange={set('check_out')} /></Field>
       </div>
-      {busyDates && (
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-slate-700">Logements ({nights > 0 ? nights : 0} nuit{nights > 1 ? 's' : ''})</p>
+        {rows.map((r, i) => (
+          <div key={i} className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_11rem_auto]">
+            <Field label={`Logement ${rows.length > 1 ? i + 1 : ''}`.trim()}>
+              <select className="input" required value={r.unit_id} onChange={pickUnit(i)}>
+                <option value="">Choisir…</option>
+                {units.map((u) => <option key={u.id} value={u.id}>{u.name} — {u.type}</option>)}
+              </select>
+            </Field>
+            <Field label="Prix par nuit (FCFA)">
+              <input className="input" type="number" min="0" inputMode="numeric" value={r.price} placeholder={String(r.unit?.price_per_night || 0)} onChange={(e) => setLine(i, { price: e.target.value })} />
+            </Field>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <span className="text-sm font-semibold">{fcfa(r.amount)}</span>
+              {rows.length > 1 && (
+                <button type="button" className="btn btn-secondary !px-3" aria-label={`Retirer le logement ${i + 1}`} onClick={() => setLines(lines.filter((_, j) => j !== i))}><X size={16} /></button>
+              )}
+            </div>
+          </div>
+        ))}
+        <button type="button" className="text-sm font-medium text-salam-700 underline" onClick={() => setLines([...lines, { unit_id: '', price: '' }])}>+ Ajouter un logement</button>
+      </div>
+      {taken.length > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Attention : ce logement est déjà réservé sur une partie de ces dates. Le proforma peut quand même être créé.
+          Attention : {taken.join(', ')} {taken.length > 1 ? 'sont déjà réservés' : 'est déjà réservé'} sur une partie de ces dates. Le proforma peut quand même être créé.
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Prix par nuit (FCFA)">
-          <input className="input" type="number" min="0" inputMode="numeric" value={f.price} placeholder={String(unit?.price_per_night || 0)} onChange={(e) => setF({ ...f, price: e.target.value, total: '' })} />
-        </Field>
-        <Field label={`Montant total (${nights > 0 ? nights : 0} nuit${nights > 1 ? 's' : ''})`} hint="Calculé automatiquement. Écrivez un autre montant pour le changer.">
-          <input className="input" type="number" min="0" inputMode="numeric" placeholder={String(nights > 0 ? nights * price : 0)} value={f.total} onChange={set('total')} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={`Montant total${rows.length > 1 ? ' (tous les logements)' : ''}`} hint="Calculé automatiquement. Écrivez un autre montant pour le changer (remise, prix négocié).">
+          <input className="input" type="number" min="0" inputMode="numeric" placeholder={String(sum)} value={f.total} onChange={set('total')} />
         </Field>
         <Field label="Acompte demandé (facultatif)">
           <input className="input" type="number" min="0" inputMode="numeric" value={f.deposit} onChange={set('deposit')} />
@@ -145,7 +177,7 @@ function ProformaForm({ proforma, units, bookings, onDone, onCancel }) {
 }
 
 export default function Proformas({ data, reload, openDoc, goNew }) {
-  const { toast, confirm } = useNotify()
+  const { toast, confirm, inform } = useNotify()
   const [form, setForm] = useState(null) // null | 'new' | proforma à modifier
   const [filter, setFilter] = useState('all')
 
@@ -183,9 +215,44 @@ export default function Proformas({ data, reload, openDoc, goNew }) {
     reload()
   }
 
+  // Proforma à plusieurs logements : une réservation par logement, créées d'un coup (tout ou rien)
+  const convertMany = async (p, lines) => {
+    const taken = lines.filter((l) => data.bookings.some((b) => b.status !== 'annulee' && b.unit_id === l.unit_id && b.check_in < p.check_out && p.check_in < b.check_out))
+    if (taken.length) {
+      return inform({ title: 'Logement déjà réservé', message: `${taken.map((l) => l.unit_label).join(', ')} ${taken.length > 1 ? 'sont déjà réservés' : 'est déjà réservé'} du ${fdate(p.check_in)} au ${fdate(p.check_out)}. Modifiez le proforma ou libérez ${taken.length > 1 ? 'ces logements' : 'ce logement'} avant de le transformer.` })
+    }
+    const ok = await confirm({
+      title: `Créer ${lines.length} réservations ?`,
+      message: `${[p.first_name, p.last_name].filter(Boolean).join(' ')} : ${lines.map((l) => l.unit_label).join(', ')}, du ${fdate(p.check_in)} au ${fdate(p.check_out)}. Total ${fcfa(p.total_amount)}.\n\nChaque logement aura sa propre réservation, sans avance. Vous pourrez ensuite les modifier une par une.`,
+      confirmLabel: 'Oui, créer les réservations',
+    })
+    if (!ok) return
+    // Remise : retirée d'abord sur le premier logement, puis sur les suivants ; supplément : ajouté au premier
+    const amounts = lines.map((l) => l.amount)
+    let diff = Number(p.total_amount) - amounts.reduce((s, x) => s + x, 0)
+    if (diff > 0) amounts[0] += diff
+    for (let i = 0; i < amounts.length && diff < 0; i++) { const cut = Math.min(amounts[i], -diff); amounts[i] -= cut; diff += cut }
+
+    const c = await supabase.from('clients').insert({ last_name: p.last_name, first_name: p.first_name || '', phone: p.phone || NR, id_number: NR }).select('id').single()
+    if (c.error) return toast(`Les réservations n'ont pas pu être créées : ${c.error.message}`, 'error')
+    const ins = await supabase.from('bookings').insert(lines.map((l, i) => ({
+      client_id: c.data.id, unit_id: l.unit_id, check_in: p.check_in, check_out: p.check_out,
+      payment_mode: PAY_MODES[0], total_amount: amounts[i], advance: 0, note: p.note || null,
+    }))).select('id')
+    if (ins.error) {
+      await supabase.from('clients').delete().eq('id', c.data.id)
+      return toast(ins.error.code === '23P01' ? 'Un des logements vient d\'être réservé sur ces dates. Rien n\'a été créé.' : `Les réservations n'ont pas pu être créées : ${ins.error.message}`, 'error')
+    }
+    await supabase.from('proformas').update({ status: 'acceptee', booking_id: ins.data[0].id }).eq('id', p.id)
+    toast(`${lines.length} réservations ont été créées.`)
+    reload()
+  }
+
   // Ouvre le formulaire de réservation déjà rempli avec les informations du proforma
-  const convert = (p) =>
-    goNew(p.check_in, {
+  const convert = (p) => {
+    const lines = proformaLines(p).filter((l) => !l.adjust)
+    if (lines.length > 1) return convertMany(p, lines)
+    return goNew(p.check_in, {
       proformaId: p.id,
       prefill: {
         last_name: p.last_name, first_name: p.first_name || '', phone: p.phone || '',
@@ -193,6 +260,7 @@ export default function Proformas({ data, reload, openDoc, goNew }) {
         total: String(p.total_amount), advance: '0',
       },
     })
+  }
 
   return (
     <div className="space-y-6">

@@ -43,6 +43,15 @@ export const SOURCE = {
   courtier: { label: 'Via un courtier', bar: 'border-l-4 border-gold', pill: 'bg-amber-100 text-amber-900', dot: 'bg-gold' },
   note: { label: 'Écrit à la main', bar: 'border-l-4 border-slate-300', pill: 'bg-slate-100 text-slate-700', dot: 'bg-slate-300' },
 }
+// Lignes d'un proforma (un logement par ligne). Les anciens proformas n'ont qu'un logement et pas de lignes enregistrées.
+// Si le total est différent de la somme des lignes (montant négocié), une ligne « Remise » ou « Supplément » est ajoutée.
+export const proformaLines = (p) => {
+  const items = Array.isArray(p.items) ? p.items : []
+  if (items.length === 0) return [{ unit_id: p.unit_id, unit_label: p.unit_label, price: Number(p.price_per_night), amount: Number(p.total_amount) }]
+  const lines = items.map((i) => ({ unit_id: i.unit_id, unit_label: i.unit_label, price: Number(i.price), amount: Number(i.amount) }))
+  const diff = Number(p.total_amount) - lines.reduce((s, l) => s + l.amount, 0)
+  return diff === 0 ? lines : [...lines, { unit_label: diff < 0 ? 'Remise' : 'Supplément', price: null, amount: diff, adjust: true }]
+}
 // Commission du courtier par nuit, selon le prix du logement (règle de la gérante) :
 // 10 000 → 1 000 · 12 500 → 2 000 · 15 000 et appartement → 2 500
 export const brokerRate = (price) => { const p = Number(price) || 0; return p <= 0 ? 0 : p <= 10000 ? 1000 : p <= 12500 ? 2000 : 2500 }

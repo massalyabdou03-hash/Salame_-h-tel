@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { fcfa, fdate, known } from './utils'
+import { fcfa, fdate, known, proformaLines } from './utils'
 
 // Information absente (client venu sans pièce, par exemple) : points à remplir à la main sur le contrat imprimé
 const BLANK = '..............................'
@@ -131,16 +131,24 @@ export function buildProforma(info, p) {
   doc.text('Nuitées', 119, y + 5.5, { align: 'center' }); doc.text('Prix / nuit', 146, y + 5.5, { align: 'center' }); doc.text('Montant', 192, y + 5.5, { align: 'right' })
   y += 8
   doc.setTextColor(30); doc.setFont('helvetica', 'normal')
-  const label = doc.splitTextToSize(`Séjour - ${p.unit_label}`, 44)
-  doc.text(label, 18, y + 6)
-  doc.text(`${fdate(p.check_in)} au ${fdate(p.check_out)}`, 90, y + 6, { align: 'center' })
-  doc.text(String(p.nights), 119, y + 6, { align: 'center' })
-  doc.text(m(p.price_per_night), 146, y + 6, { align: 'center' })
-  doc.text(m(p.total_amount), 192, y + 6, { align: 'right' })
-  const rowH = Math.max(11, label.length * 5.5 + 5)
-  doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(15, y + rowH, 195, y + rowH)
+  // Une ligne par logement (un seul pour les anciens proformas)
+  for (const l of proformaLines(p)) {
+    const label = doc.splitTextToSize(l.adjust ? l.unit_label : `Séjour - ${l.unit_label}`, 44)
+    const rowH = Math.max(11, label.length * 5.5 + 5)
+    if (y + rowH > 255) { doc.addPage(); y = 25 }
+    doc.text(label, 18, y + 6)
+    if (!l.adjust) {
+      doc.text(`${fdate(p.check_in)} au ${fdate(p.check_out)}`, 90, y + 6, { align: 'center' })
+      doc.text(String(p.nights), 119, y + 6, { align: 'center' })
+      doc.text(m(l.price), 146, y + 6, { align: 'center' })
+    }
+    doc.text(m(l.amount), 192, y + 6, { align: 'right' })
+    doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(15, y + rowH, 195, y + rowH)
+    y += rowH
+  }
 
-  y += rowH + 12
+  y += 12
+  if (y > 215) { doc.addPage(); y = 25 }
   doc.setFontSize(10)
   doc.text('Montant total', 120, y); doc.text(m(p.total_amount), 192, y, { align: 'right' })
   if (Number(p.deposit) > 0) {
