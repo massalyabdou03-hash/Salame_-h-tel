@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BellRing, X } from 'lucide-react'
+import { supabase } from './supabase'
 
 // Rappel de paiement de l'abonnement de la base de données.
 // S'affiche uniquement l'avant-dernier et le dernier jour du mois.
@@ -22,7 +23,20 @@ function dejaFerme() {
 }
 
 export default function RappelAbonnement() {
-  const [visible, setVisible] = useState(() => estFinDeMois() && !dejaFerme())
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (!estFinDeMois() || dejaFerme()) return
+    let actif = true
+    const now = new Date()
+    const mois = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    // Mois déjà marqué payé par Massaly (table abonnement_bdd) ? Alors pas de rappel.
+    supabase.from('abonnement_bdd').select('mois').eq('mois', mois).maybeSingle()
+      .then(({ data, error }) => { if (actif) setVisible(!!error || !data) })
+      .catch(() => { if (actif) setVisible(true) }) // hors ligne : on affiche par précaution
+    return () => { actif = false }
+  }, [])
+
   if (!visible) return null
 
   const fermer = () => {
