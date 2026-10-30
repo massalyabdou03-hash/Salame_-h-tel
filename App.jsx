@@ -11,6 +11,7 @@ import Expenses from './Expenses'
 import Courtiers from './Courtiers'
 import Reglages from './Reglages'
 import DocView from './DocView'
+import RappelAbonnement from './RappelAbonnement'
 
 const TABS = [
   ['dash', 'Accueil', LayoutDashboard],
@@ -208,6 +209,7 @@ function Shell() {
 
         <main className="mx-auto max-w-[1280px] space-y-6 px-3 pb-28 pt-4 md:px-5 lg:pb-12 lg:pl-[calc(16rem+2rem)] lg:pr-8 lg:pt-8">
           {loadErr && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadErr}</p>}
+          <RappelAbonnement />
           {page}
         </main>
 
