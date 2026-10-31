@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Salame Hôtel">
+  <defs>
+    <linearGradient id="r" x1="0" x2="1"><stop offset="0" stop-color="#F2C66D"/><stop offset="1" stop-color="#D9A441"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#1F4D3A"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="#F2C66D" stroke-opacity=".35"/>
+  <polygon points="32,11 49,24 15,24" fill="url(#r)"/>
+  <rect x="18.5" y="24" width="27" height="25" rx="3" fill="#12301F" stroke="#D9A441" stroke-width="1.4"/>
+  <g fill="#F8D77A"><rect x="22" y="27.5" width="5" height="5" rx="1.2"/><rect x="29.5" y="27.5" width="5" height="5" rx="1.2"/><rect x="37" y="27.5" width="5" height="5" rx="1.2"/><rect x="22" y="35" width="5" height="5" rx="1.2"/><rect x="37" y="35" width="5" height="5" rx="1.2"/></g>
+  <rect x="29" y="35" width="6" height="14" rx="1" fill="#D9A441"/>
+  <rect x="16" y="49" width="32" height="2" rx="1" fill="#D9A441"/>
+</svg>

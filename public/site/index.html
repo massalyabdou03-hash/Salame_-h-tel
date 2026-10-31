@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salame Hôtel · Chambres, duplex et appartement meublés à Ziguinchor</title>
+<meta name="description" content="Salame Hôtel à Santhiaba, Ziguinchor (Route de Kandé) : 14 chambres, duplex et appartement meublés avec salle de bain privée. Location à la nuitée. Réservation sur WhatsApp au 77 671 18 26.">
+<meta property="og:title" content="Salame Hôtel · Ziguinchor">
+<meta property="og:description" content="14 logements meublés à Santhiaba, Ziguinchor. Réservez sur WhatsApp.">
+<meta property="og:image" content="chambre-bleue.jpg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#12301F">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --g9:#0E2619; --g8:#12301F; --g7:#1F4D3A; --g6:#2C6B52; --g1:#D5E6DC; --g0:#EEF5F1;
+  --gold:#D9A441; --gold-2:#F2C66D; --amber:#D97706;
+  --cream:#FBF7F0; --sand:#F3EBDD; --ink:#16201A; --muted:#5E6B62; --line:#E7DFD0;
+  --wa:#1FA855; --r:22px;
+  --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+.wrap{width:min(1160px,100% - 32px);margin-inline:auto}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--g6)}
+.eyebrow::before{content:"";width:26px;height:1.5px;background:currentColor;opacity:.7}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.05;letter-spacing:-.01em}
+h2{font-size:clamp(2.3rem,7vw,3.6rem)}
+h2 em,h1 em{font-style:italic;color:var(--gold)}
+section{padding:88px 0}
+.lead{color:var(--muted);font-size:1.05rem;max-width:560px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 26px;border-radius:999px;font-weight:700;font-size:.97rem;border:0;cursor:pointer;transition:transform .18s,box-shadow .25s,background .25s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn svg{width:20px;height:20px;flex:none}
+.btn-wa{background:var(--wa);color:#fff;box-shadow:0 10px 24px -6px rgba(31,168,85,.55)}
+.btn-wa:hover{background:#17924A}
+.btn-gold{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:var(--g9);box-shadow:0 12px 28px -8px rgba(217,164,65,.7)}
+.btn-gold:hover{box-shadow:0 16px 34px -8px rgba(217,164,65,.85)}
+.btn-line{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.55)}
+.btn-line:hover{background:rgba(255,255,255,.1)}
+
+/* ---------- Header ---------- */
+header{position:fixed;inset:0 0 auto;z-index:50;padding-top:env(safe-area-inset-top);transition:background .35s,box-shadow .35s}
+header.solid{background:rgba(14,38,25,.92);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:11px;color:#fff}
+.brand img{width:42px;height:42px}
+.brand b{display:block;font-family:var(--serif);font-size:1.5rem;font-weight:700;line-height:.95;letter-spacing:.01em}
+.brand small{display:block;font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-2);font-weight:700;margin-top:3px}
+.links{display:flex;align-items:center;gap:28px}
+.links a:not(.btn){color:rgba(255,255,255,.85);font-weight:600;font-size:.92rem;position:relative}
+.links a:not(.btn)::after{content:"";position:absolute;left:0;right:100%;bottom:-6px;height:1.5px;background:var(--gold);transition:right .3s}
+.links a:not(.btn):hover::after{right:0}
+.nav .btn{padding:11px 18px;font-size:.88rem}
+@media(max-width:880px){.links a:not(.btn){display:none}}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;min-height:100svh;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;background:var(--g9)}
+.slides{position:absolute;inset:0}
+.slides div{position:absolute;inset:-4%;background-size:cover;background-position:center;opacity:0;animation:slide 24s infinite}
+.slides div:nth-child(1){background-image:url(chambre-bleue.jpg);animation-delay:0s}
+.slides div:nth-child(2){background-image:url(salon-cuisine-rouge.jpg);animation-delay:8s}
+.slides div:nth-child(3){background-image:url(chambre-baobab.jpg);animation-delay:16s}
+@keyframes slide{0%{opacity:0;transform:scale(1.12)}6%{opacity:1}33%{opacity:1}40%{opacity:0;transform:scale(1)}100%{opacity:0}}
+.hero::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(120% 70% at 50% 0%,rgba(14,38,25,.15),transparent 60%),
+  linear-gradient(180deg,rgba(10,26,17,.55) 0%,rgba(10,26,17,.15) 30%,rgba(10,26,17,.72) 70%,rgba(10,26,17,.97) 100%)}
+.hero-in{position:relative;z-index:2;padding:130px 0 34px}
+.hero .eyebrow{color:var(--gold-2)}
+.hero h1{font-size:clamp(3.1rem,13vw,6.4rem);margin:16px 0 18px;max-width:900px}
+.hero p.sub{font-size:clamp(1.02rem,2.8vw,1.22rem);color:rgba(255,255,255,.88);max-width:540px;margin-bottom:30px}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px}
+.quick{margin-top:40px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:24px;padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+.quick>*{min-width:0}
+.quick label{display:block;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7);font-weight:700;margin:0 0 6px 4px}
+.quick input,.quick select{width:100%;font:inherit;font-size:16px;color:#fff;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 14px;-webkit-appearance:none;appearance:none;color-scheme:dark;min-height:48px}
+.quick select option{color:#111}
+.quick .btn{min-height:48px}
+@media(max-width:820px){.quick{grid-template-columns:1fr 1fr}.quick .q-type{grid-column:1/-1}.quick .btn{grid-column:1/-1}}
+.scroll-hint{position:absolute;z-index:2;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));width:1px;height:34px;background:linear-gradient(var(--gold-2),transparent);animation:hint 2s infinite}
+@keyframes hint{0%{transform:translate(-50%,-6px);opacity:0}50%{opacity:1}100%{transform:translate(-50%,8px);opacity:0}}
+@media(max-width:820px){.scroll-hint{display:none}}
+
+/* ---------- Bandeau défilant ---------- */
+.marquee{background:var(--g8);color:var(--g1);overflow:hidden;padding:18px 0;border-top:1px solid rgba(255,255,255,.06)}
+.marquee-track{display:flex;gap:48px;width:max-content;animation:mq 34s linear infinite}
+.marquee span{display:flex;align-items:center;gap:48px;font-family:var(--serif);font-size:1.45rem;font-style:italic;white-space:nowrap}
+.marquee span::after{content:"✦";font-style:normal;font-size:.8rem;color:var(--gold)}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ---------- Bienvenue ---------- */
+.welcome{display:grid;grid-template-columns:1.05fr 1fr;gap:64px;align-items:center}
+.collage{position:relative;aspect-ratio:1/1.05}
+.collage img{position:absolute;object-fit:cover;border-radius:var(--r);box-shadow:0 30px 60px -20px rgba(18,48,31,.45)}
+.collage .c1{inset:0 22% 18% 0;width:78%;height:82%}
+.collage .c2{right:0;bottom:0;width:52%;height:56%;border:8px solid var(--cream)}
+.badge{position:absolute;left:-10px;bottom:6%;background:var(--g8);color:#fff;border-radius:20px;padding:16px 20px;box-shadow:0 20px 40px -14px rgba(14,38,25,.6);z-index:2}
+.badge b{font-family:var(--serif);font-size:2.6rem;line-height:1;color:var(--gold-2);display:block}
+.badge small{font-size:.78rem;letter-spacing:.06em;color:var(--g1)}
+.welcome h2{margin:14px 0 20px}
+.welcome p+p{margin-top:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:30px}
+.stat{border:1px solid var(--line);border-radius:18px;padding:16px 14px;background:#fff}
+.stat b{font-family:var(--serif);font-size:2rem;color:var(--g7);display:block;line-height:1}
+.stat span{font-size:.82rem;color:var(--muted)}
+@media(max-width:900px){.welcome{grid-template-columns:1fr;gap:40px}.collage{max-width:520px;width:100%;margin-inline:auto}}
+
+/* ---------- Atouts ---------- */
+#atouts{background:var(--sand)}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:42px}
+.head h2{margin-top:12px}
+.perks{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.perk{background:var(--cream);border-radius:var(--r);padding:28px 24px;position:relative;overflow:hidden;transition:transform .35s,box-shadow .35s}
+.perk:hover{transform:translateY(-4px);box-shadow:0 24px 40px -22px rgba(18,48,31,.35)}
+.perk i{width:54px;height:54px;border-radius:16px;background:var(--g8);color:var(--gold-2);display:grid;place-items:center;margin-bottom:18px}
+.perk i svg{width:26px;height:26px}
+.perk h3{font-size:1.55rem;margin-bottom:6px}
+.perk p{color:var(--muted);font-size:.94rem}
+@media(max-width:900px){.perks{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.perks{grid-template-columns:1fr}.perk{display:grid;grid-template-columns:54px 1fr;gap:4px 16px;padding:20px}.perk i{grid-row:span 2;margin:0}}
+
+/* ---------- Logements ---------- */
+.units{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.unit{background:#fff;border-radius:26px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column;transition:box-shadow .35s,transform .35s}
+.unit:hover{box-shadow:0 30px 60px -30px rgba(18,48,31,.45);transform:translateY(-3px)}
+.car{position:relative;aspect-ratio:5/4;overflow:hidden;background:var(--sand)}
+.car-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+.car-track::-webkit-scrollbar{display:none}
+.car-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;cursor:zoom-in}
+.car .tag{position:absolute;top:14px;left:14px;background:rgba(14,38,25,.82);backdrop-filter:blur(6px);color:#fff;font-size:.74rem;font-weight:700;letter-spacing:.08em;padding:7px 13px;border-radius:999px}
+.car .count{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.92);color:var(--g8);font-size:.74rem;font-weight:800;padding:6px 11px;border-radius:999px}
+.dots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:6px;pointer-events:none}
+.dots b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);transition:all .3s}
+.dots b.on{background:#fff;width:20px;border-radius:4px}
+.car .arr{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--g8);font-size:1.3rem;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .3s}
+.car:hover .arr{opacity:1}.car .arr.l{left:12px}.car .arr.r{right:12px}
+@media(hover:none){.car .arr{display:none}}
+.u-body{padding:24px 24px 26px;display:flex;flex-direction:column;flex:1}
+.u-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.u-body h3{font-size:2rem}
+.u-cap{font-size:.82rem;color:var(--g6);font-weight:700;white-space:nowrap}
+.u-body p{color:var(--muted);margin:8px 0 16px;font-size:.96rem}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:22px}
+.chips span{font-size:.8rem;font-weight:600;background:var(--g0);color:var(--g7);padding:6px 12px;border-radius:999px}
+.u-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid var(--line)}
+.u-foot small{display:block;font-size:.74rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.u-foot strong{font-family:var(--serif);font-size:1.35rem;color:var(--g8)}
+.u-foot .btn{padding:12px 18px;font-size:.88rem}
+@media(max-width:760px){.units{grid-template-columns:1fr}}
+
+/* ---------- Galerie ---------- */
+#galerie{background:var(--g9);color:#fff}
+#galerie .eyebrow{color:var(--gold-2)}
+#galerie .lead{color:rgba(255,255,255,.7)}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters button{border:1px solid rgba(255,255,255,.22);background:transparent;color:rgba(255,255,255,.8);padding:9px 16px;border-radius:999px;font-weight:600;font-size:.86rem;cursor:pointer;transition:all .25s}
+.filters button.on{background:var(--gold);border-color:var(--gold);color:var(--g9)}
+.masonry{columns:3 260px;column-gap:12px}
+.masonry button{display:block;width:100%;margin:0 0 12px;border:0;padding:0;border-radius:16px;overflow:hidden;cursor:zoom-in;break-inside:avoid;position:relative;background:var(--g8)}
+.masonry img{width:100%;height:auto;transition:transform .6s,opacity .4s}
+.masonry button:hover img{transform:scale(1.05)}
+.masonry button span{position:absolute;left:0;right:0;bottom:0;padding:30px 14px 12px;background:linear-gradient(transparent,rgba(0,0,0,.65));font-size:.82rem;text-align:left;opacity:0;transition:opacity .3s}
+.masonry button:hover span{opacity:1}
+.masonry button.hide{display:none}
+@media(max-width:560px){.masonry{columns:2;column-gap:8px}.masonry button{margin-bottom:8px;border-radius:12px}}
+
+/* ---------- Lightbox ---------- */
+.lb{position:fixed;inset:0;z-index:100;background:rgba(6,14,9,.96);display:none;align-items:center;justify-content:center}
+.lb.open{display:flex;animation:fade .25s}
+@keyframes fade{from{opacity:0}}
+.lb img{max-height:84vh;max-width:min(94vw,720px);border-radius:14px;object-fit:contain}
+.lb button{position:absolute;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:1.6rem;cursor:pointer;display:grid;place-items:center}
+.lb .x{top:calc(14px + env(safe-area-inset-top));right:14px}
+.lb .pv{left:10px;top:50%;transform:translateY(-50%)}.lb .nx{right:10px;top:50%;transform:translateY(-50%)}
+.lb-cap{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:.9rem}
+
+/* ---------- Réservation ---------- */
+#reserver{background:var(--g8);color:#fff;position:relative;overflow:hidden}
+#reserver::before{content:"";position:absolute;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(217,164,65,.22),transparent 65%);top:-260px;right:-200px}
+#reserver::after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(44,107,82,.6),transparent 65%);bottom:-200px;left:-160px}
+.book{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1.05fr;gap:56px;align-items:start}
+#reserver .eyebrow{color:var(--gold-2)}
+#reserver h2{margin:14px 0 18px}
+#reserver .lead{color:rgba(255,255,255,.75)}
+.steps{list-style:none;margin:32px 0 30px;display:grid;gap:20px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:44px 1fr;gap:16px;counter-increment:s}
+.steps li::before{content:counter(s);width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold-2);display:grid;place-items:center;font-family:var(--serif);font-size:1.35rem;font-weight:700}
+.steps h4{font-size:1.02rem;margin-bottom:2px}
+.steps p{color:rgba(255,255,255,.68);font-size:.92rem}
+.pay{display:flex;flex-wrap:wrap;gap:8px}
+.pay span{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);padding:8px 14px;border-radius:999px;font-size:.84rem;font-weight:600}
+.pay span.hl{border-color:var(--gold);color:var(--gold-2)}
+form.card{background:var(--cream);color:var(--ink);border-radius:28px;padding:30px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6)}
+form.card h3{font-size:2rem}
+form.card>p{color:var(--muted);font-size:.92rem;margin:4px 0 22px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.76rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g7);margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%;font:inherit;font-size:16px;padding:13px 15px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);-webkit-appearance:none;appearance:none;min-height:50px}
+.field textarea{min-height:0;resize:vertical}
+.field select{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231F4D3A' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 15px center;padding-right:38px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--g6);box-shadow:0 0 0 4px var(--g1)}
+.field .err{border-color:#C0462B!important;box-shadow:0 0 0 4px #F6DCD4!important}
+.summary{display:flex;justify-content:space-between;align-items:center;background:var(--g0);border-radius:14px;padding:12px 16px;margin:4px 0 16px;font-size:.9rem;color:var(--g7);font-weight:600}
+.summary[hidden]{display:none}
+.summary b{font-family:var(--serif);font-size:1.5rem}
+form.card .btn{width:100%;padding:17px}
+.note{text-align:center;font-size:.8rem;color:var(--muted);margin-top:12px}
+@media(max-width:900px){.book{grid-template-columns:1fr;gap:40px}}
+@media(max-width:420px){.row{grid-template-columns:1fr;gap:0}form.card{padding:22px 18px;border-radius:24px}}
+
+/* ---------- Contact ---------- */
+.contact{display:grid;grid-template-columns:1fr 1.15fr;gap:22px;align-items:stretch}
+.c-card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:30px}
+.c-card h3{font-size:2.1rem;margin:10px 0 18px}
+.c-line{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.c-line i{width:44px;height:44px;border-radius:14px;background:var(--g0);color:var(--g7);display:grid;place-items:center}
+.c-line i svg{width:22px;height:22px}
+.c-line small{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-line a,.c-line span{font-weight:700;font-size:1.02rem}
+.c-line a:hover{color:var(--g6)}
+.c-btns{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.c-btns .btn{flex:1;min-width:150px}
+.btn-dark{background:var(--g8);color:#fff}
+.btn-dark:hover{background:var(--g7)}
+.map{border-radius:var(--r);overflow:hidden;min-height:380px;background:var(--sand);border:1px solid var(--line)}
+.map iframe{width:100%;height:100%;min-height:380px;border:0;display:block;filter:saturate(.85)}
+@media(max-width:860px){.contact{grid-template-columns:1fr}.map,.map iframe{min-height:300px}}
+
+/* ---------- Footer ---------- */
+footer{background:var(--g9);color:rgba(255,255,255,.62);padding:56px 0 calc(100px + env(safe-area-inset-bottom));font-size:.88rem}
+.f-top{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:22px}
+.f-top p{max-width:340px;margin-top:14px}
+.f-cols{display:flex;gap:48px;flex-wrap:wrap}
+.f-cols h5{color:#fff;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px}
+.f-cols a{display:block;padding:3px 0}
+.f-cols a:hover{color:var(--gold-2)}
+.f-bot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.8rem}
+
+/* ---------- WhatsApp flottant ---------- */
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;width:62px;height:62px;border-radius:50%;background:var(--wa);color:#fff;display:grid;place-items:center;box-shadow:0 12px 28px -6px rgba(31,168,85,.6);transform:scale(0);transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.fab.show{transform:scale(1)}
+.fab svg{width:32px;height:32px}
+.fab::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--wa);animation:ping 2.4s infinite}
+@keyframes ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+
+.rv{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}.slides div:first-child{opacity:1}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm4.52 11.99c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29ZM12.04 20.15a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23Z"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.6"/></g></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2Z"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g></symbol>
+</svg>
+
+<header id="hd">
+  <div class="wrap nav">
+    <a href="#" class="brand" aria-label="Salame Hôtel, retour en haut">
+      <img src="logo.svg" alt="" width="42" height="42">
+      <span><b>Salame Hôtel</b><small>Ziguinchor</small></span>
+    </a>
+    <nav class="links">
+      <a href="#bienvenue">L'hôtel</a>
+      <a href="#logements">Logements</a>
+      <a href="#galerie">Galerie</a>
+      <a href="#contact">Contact</a>
+      <a href="#reserver" class="btn btn-gold">Réserver</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" style="padding:0">
+  <div class="slides" aria-hidden="true"><div></div><div></div><div></div></div>
+  <div class="wrap hero-in">
+    <span class="eyebrow">Santhiaba · Ziguinchor · Casamance</span>
+    <h1>Dormez bien,<br><em>vivez</em> la Casamance.</h1>
+    <p class="sub">Chambres, duplex et appartement meublés, à deux pas de la Route de Kandé. Propres, calmes, prêts à vous accueillir pour une nuit ou pour un mois.</p>
+    <div class="hero-ctas">
+      <a href="#reserver" class="btn btn-gold">Réserver mon séjour</a>
+      <a href="#logements" class="btn btn-line">Découvrir les logements</a>
+    </div>
+    <form class="quick" id="quick" aria-label="Recherche rapide">
+      <div><label for="q-arr">Arrivée</label><input type="date" id="q-arr"></div>
+      <div><label for="q-dep">Départ</label><input type="date" id="q-dep"></div>
+      <div class="q-type"><label for="q-type">Logement</label>
+        <select id="q-type"><option>Chambre</option><option>Duplex</option><option>Appartement</option><option>Peu importe</option></select></div>
+      <button class="btn btn-wa" type="submit"><svg><use href="#wa"/></svg>Disponibilité</button>
+    </form>
+  </div>
+  <span class="scroll-hint" aria-hidden="true"></span>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>14 logements meublés</span><span>Salle de bain privée</span><span>Location à la nuitée</span><span>Accueil chaleureux</span><span>Paiement Wave &amp; Orange Money</span><span>Route de Kandé</span>
+    <span>14 logements meublés</span><span>Salle de bain privée</span><span>Location à la nuitée</span><span>Accueil chaleureux</span><span>Paiement Wave &amp; Orange Money</span><span>Route de Kandé</span>
+  </div>
+</div>
+
+<section id="bienvenue">
+  <div class="wrap welcome">
+    <div class="collage rv">
+      <img class="c1" src="chambre-baobab.jpg" alt="Chambre avec tête de lit en bois et tableau baobab" loading="lazy">
+      <img class="c2" src="salon-canape.jpg" alt="Coin salon lumineux avec canapé" loading="lazy">
+      <div class="badge"><b>14</b><small>logements meublés</small></div>
+    </div>
+    <div class="rv d1">
+      <span class="eyebrow">Bienvenue chez nous</span>
+      <h2>Une adresse <em>simple</em>, soignée et chaleureuse.</h2>
+      <p class="lead">Au quartier Santhiaba, sur le Boulevard 54 de la Route de Kandé, Salame Hôtel vous accueille dans des logements entretenus chaque jour avec soin.</p>
+      <p class="lead">Touristes, familles en visite, professionnels en mission : on vous reçoit comme à la maison, avec la <em style="font-family:var(--serif);font-size:1.15em;color:var(--g7)">teranga</em> casamançaise.</p>
+      <div class="stats">
+        <div class="stat"><b>4</b><span>types de logements</span></div>
+        <div class="stat"><b>24h</b><span>par nuitée</span></div>
+        <div class="stat"><b>7j/7</b><span>accueil</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="atouts">
+  <div class="wrap">
+    <div class="head rv">
+      <div><span class="eyebrow">Le confort, sans compromis</span><h2>Tout pour un séjour <em>serein</em></h2></div>
+      <p class="lead">L'essentiel est là, bien pensé, pour que vous n'ayez qu'à poser vos valises.</p>
+    </div>
+    <div class="perks">
+      <div class="perk rv"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v20M4.9 6l14.2 12M19.1 6 4.9 18M2 12h20"/></svg></i><h3>Fraîcheur</h3><p>Climatisation ou ventilateur selon le logement, pour des nuits reposantes.</p></div>
+      <div class="perk rv d1"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 12h16v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-3ZM6 12V5a2 2 0 0 1 4 0M7 20l-1 2M17 20l1 2"/></svg></i><h3>Salle de bain privée</h3><p>Douche, lavabo et toilettes dans chaque logement.</p></div>
+      <div class="perk rv d2"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg></i><h3>Télévision</h3><p>Écran plat pour vous détendre en fin de journée.</p></div>
+      <div class="perk rv"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 11h18M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8M8 7s1-1 1-3M12 7s1-1 1-3M16 7s1-1 1-3"/></svg></i><h3>Cuisine équipée</h3><p>Plaques de cuisson, vaisselle et ustensiles dans les duplex et l'appartement.</p></div>
+      <div class="perk rv d1"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M2 18v-6a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6M2 15h20M5 9V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/></svg></i><h3>Linge fourni</h3><p>Draps propres et serviettes qui vous attendent à l'arrivée.</p></div>
+      <div class="perk rv d2"><i><svg width="26" height="26"><use href="#clock"/></svg></i><h3>À la nuitée</h3><p>Séjour de 24 h, court ou long : c'est vous qui choisissez.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="logements">
+  <div class="wrap">
+    <div class="head rv">
+      <div><span class="eyebrow">Nos logements</span><h2>Choisissez <em>votre</em> espace</h2></div>
+      <p class="lead">Faites glisser les photos de chaque logement pour le découvrir.</p>
+    </div>
+    <div class="units" id="units"></div>
+  </div>
+</section>
+
+<section id="galerie">
+  <div class="wrap">
+    <div class="head rv">
+      <div><span class="eyebrow">Galerie</span><h2>Visitez <em>avant</em> d'arriver</h2></div>
+      <div class="filters" id="filters">
+        <button class="on" data-f="all">Tout</button>
+        <button data-f="chambre">Chambres</button>
+        <button data-f="salon">Salons &amp; cuisines</button>
+        <button data-f="bain">Salles de bain</button>
+      </div>
+    </div>
+    <div class="masonry rv" id="masonry"></div>
+  </div>
+</section>
+
+<section id="reserver">
+  <div class="wrap book">
+    <div class="rv">
+      <span class="eyebrow">Réservation</span>
+      <h2>Réservez en <em>deux minutes</em></h2>
+      <p class="lead">Pas de compte, pas de paiement en ligne. Envoyez votre demande, nous vous confirmons la disponibilité sur WhatsApp.</p>
+      <ol class="steps">
+        <li><div><h4>Indiquez vos dates</h4><p>Arrivée, départ, logement souhaité et nombre de personnes.</p></div></li>
+        <li><div><h4>Envoyez sur WhatsApp</h4><p>Votre message est rédigé automatiquement, il suffit d'appuyer sur « Envoyer ».</p></div></li>
+        <li><div><h4>Recevez la confirmation</h4><p>La gérante vous répond et valide votre séjour.</p></div></li>
+      </ol>
+      <div class="pay"><span class="hl">Wave</span><span class="hl">Orange Money</span><span>Espèces</span><span>Virement</span><span>Chèque</span></div>
+    </div>
+    <form class="card rv d1" id="bookForm" novalidate>
+      <h3>Demande de réservation</h3>
+      <p>Réponse rapide pendant la journée.</p>
+      <div class="field"><label for="f-nom">Nom complet</label><input id="f-nom" autocomplete="name" placeholder="Ex. Fatou Diatta"></div>
+      <div class="row">
+        <div class="field"><label for="f-arr">Arrivée</label><input type="date" id="f-arr"></div>
+        <div class="field"><label for="f-dep">Départ</label><input type="date" id="f-dep"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="f-type">Logement</label><select id="f-type"><option>Chambre</option><option>Duplex</option><option>Appartement</option><option>Peu importe</option></select></div>
+        <div class="field"><label for="f-pers">Personnes</label><select id="f-pers"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5 ou plus</option></select></div>
+      </div>
+      <div class="field"><label for="f-msg">Message <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted)">(facultatif)</span></label><textarea id="f-msg" rows="2" placeholder="Heure d'arrivée, demande particulière…"></textarea></div>
+      <div class="summary" id="summary" hidden><span>Durée du séjour</span><b id="nights"></b></div>
+      <button class="btn btn-wa" type="submit"><svg><use href="#wa"/></svg>Envoyer ma demande sur WhatsApp</button>
+      <p class="note">Ou appelez-nous directement au <a href="tel:+221776711826" style="font-weight:700;color:var(--g7)">77 671 18 26</a></p>
+    </form>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap">
+    <div class="contact">
+      <div class="c-card rv">
+        <span class="eyebrow">Nous trouver</span>
+        <h3>Salame Hôtel</h3>
+        <div class="c-line"><i><svg><use href="#pin"/></svg></i><div><small>Adresse</small><span>BD 54 Route de Kandé, Santhiaba<br>Ziguinchor, Sénégal</span></div></div>
+        <div class="c-line"><i><svg><use href="#phone"/></svg></i><div><small>Téléphones</small><a href="tel:+221776711826">77 671 18 26</a> · <a href="tel:+221776592611">77 659 26 11</a></div></div>
+        <div class="c-line"><i><svg><use href="#clock"/></svg></i><div><small>Accueil</small><span>7j/7 · arrivée sur rendez-vous</span></div></div>
+        <div class="c-btns">
+          <a class="btn btn-wa wa-link" href="#"><svg><use href="#wa"/></svg>WhatsApp</a>
+          <a class="btn btn-dark" href="https://www.google.com/maps/search/?api=1&query=Route+de+Kand%C3%A9+Santhiaba+Ziguinchor" target="_blank" rel="noopener"><svg><use href="#pin"/></svg>Itinéraire</a>
+        </div>
+      </div>
+      <div class="map rv d1"><iframe title="Carte : Santhiaba, Ziguinchor" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Route+de+Kand%C3%A9,+Santhiaba,+Ziguinchor,+S%C3%A9n%C3%A9gal&z=15&output=embed"></iframe></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="f-top">
+      <div>
+        <a href="#" class="brand"><img src="logo.svg" alt="" width="42" height="42"><span><b>Salame Hôtel</b><small>Ziguinchor</small></span></a>
+        <p>Chambres, duplex et appartement meublés au cœur de Santhiaba. Géré par le GIE SALAM.</p>
+      </div>
+      <div class="f-cols">
+        <div><h5>Explorer</h5><a href="#bienvenue">L'hôtel</a><a href="#logements">Logements</a><a href="#galerie">Galerie</a><a href="#reserver">Réserver</a></div>
+        <div><h5>Contact</h5><a href="tel:+221776711826">77 671 18 26</a><a href="tel:+221776592611">77 659 26 11</a><a href="#" class="wa-link">WhatsApp</a></div>
+      </div>
+    </div>
+    <div class="f-bot"><span>© <span id="yr"></span> Salame Hôtel · GIE SALAM</span><span>RC SN.ZGR.2021.C.1864 · NINEA 008958657</span></div>
+  </div>
+</footer>
+
+<a href="#" class="fab wa-link" id="fab" aria-label="Écrire à Salame Hôtel sur WhatsApp"><svg><use href="#wa"/></svg></a>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo agrandie">
+  <button class="x" aria-label="Fermer">×</button>
+  <button class="pv" aria-label="Photo précédente">‹</button>
+  <img id="lb-img" alt="">
+  <button class="nx" aria-label="Photo suivante">›</button>
+  <p class="lb-cap" id="lb-cap"></p>
+</div>
+
+<script>
+const WA = "221776711826"; // WhatsApp de l'hôtel (77 671 18 26)
+const waUrl = t => `https://wa.me/${WA}?text=${encodeURIComponent(t)}`;
+
+/* ---------- Photos ---------- */
+const P = {
+  "chambre-bleue":["Chambre — lit double et couverture bleue","chambre"],
+  "chambre-bleue-2":["Chambre avec armoire en bambou","chambre"],
+  "chambre-baobab":["Chambre — tableau baobab","chambre"],
+  "chambre-bois":["Chambre — tête de lit en bois","chambre"],
+  "salon-cuisine-rouge":["Salon et cuisine équipée","salon"],
+  "salon-cuisine-rouge-2":["Séjour et bar de cuisine","salon"],
+  "salon-cuisine-bleu":["Salon, canapé et cuisine","salon"],
+  "salon-canape":["Coin salon lumineux","salon"],
+  "cuisine-tv":["Cuisine ouverte et télévision","salon"],
+  "sejour-tv":["Séjour avec télévision","salon"],
+  "coin-bureau":["Coin bureau, TV et climatisation","chambre"],
+  "salle-de-bain":["Salle de bain privée avec douche","bain"],
+  "salle-de-bain-2":["Salle de bain carrelée","bain"]
+};
+const order = ["chambre-bleue","salon-cuisine-rouge","chambre-baobab","salle-de-bain","salon-canape","chambre-bois","salon-cuisine-bleu","coin-bureau","chambre-bleue-2","cuisine-tv","salle-de-bain-2","salon-cuisine-rouge-2","sejour-tv"];
+
+/* ---------- Logements ---------- */
+const UNITS = [
+  {name:"Chambre",tag:"Rez-de-chaussée · 6 chambres",cap:"2 pers.",type:"Chambre",
+   text:"Lit double, déco artisanale et calme absolu. Idéale pour un voyageur seul ou un couple.",
+   chips:["Lit double","Salle de bain privée","TV"],imgs:["chambre-bois","chambre-bleue-2","salle-de-bain"]},
+  {name:"Chambre double",tag:"À l'étage · 4 chambres",cap:"2 pers.",type:"Chambre",
+   text:"Plus de lumière et de tranquillité à l'étage, avec coin bureau pour travailler.",
+   chips:["Lit double","Coin bureau","Climatisation"],imgs:["chambre-baobab","coin-bureau","salle-de-bain-2"]},
+  {name:"Duplex",tag:"3 duplex",cap:"jusqu'à 4 pers.",type:"Duplex",
+   text:"Chambre, salon et coin cuisine : l'espace d'un vrai chez-soi, parfait pour les familles.",
+   chips:["Salon","Cuisine équipée","TV","Salle de bain"],imgs:["salon-cuisine-rouge","chambre-bleue","salon-cuisine-rouge-2","sejour-tv"]},
+  {name:"Appartement",tag:"1 appartement",cap:"jusqu'à 4 pers.",type:"Appartement",
+   text:"Un logement complet et indépendant, pensé pour les longs séjours et les missions.",
+   chips:["Salon","Cuisine équipée","Coin repas","Indépendant"],imgs:["salon-cuisine-bleu","salon-canape","cuisine-tv","chambre-bleue-2"]}
+];
+const unitsEl=document.getElementById('units');
+UNITS.forEach((u,ui)=>{
+  const el=document.createElement('article');el.className='unit rv'+(ui%2?' d1':'');
+  el.innerHTML=`<div class="car"><div class="car-track">${u.imgs.map(f=>`<img src="${f}.jpg" alt="${P[f][0]}" loading="lazy" data-f="${f}">`).join('')}</div>
+    <span class="tag">${u.tag}</span><span class="count">${u.imgs.length} photos</span>
+    <button class="arr l" aria-label="Photo précédente">‹</button><button class="arr r" aria-label="Photo suivante">›</button>
+    <div class="dots">${u.imgs.map((_,i)=>`<b class="${i?'':'on'}"></b>`).join('')}</div></div>
+    <div class="u-body"><div class="u-top"><h3>${u.name}</h3><span class="u-cap">${u.cap}</span></div><p>${u.text}</p>
+    <div class="chips">${u.chips.map(c=>`<span>${c}</span>`).join('')}</div>
+    <div class="u-foot"><div><small>Tarif / nuit</small><strong>Sur demande</strong></div>
+    <a href="#reserver" class="btn btn-wa" data-type="${u.type}"><svg><use href="#wa"/></svg>Réserver</a></div></div>`;
+  unitsEl.appendChild(el);
+  const tr=el.querySelector('.car-track'),dots=el.querySelectorAll('.dots b');
+  tr.addEventListener('scroll',()=>{const i=Math.round(tr.scrollLeft/tr.clientWidth);dots.forEach((d,k)=>d.classList.toggle('on',k===i))},{passive:true});
+  el.querySelector('.arr.l').onclick=()=>tr.scrollBy({left:-tr.clientWidth,behavior:'smooth'});
+  el.querySelector('.arr.r').onclick=()=>tr.scrollBy({left:tr.clientWidth,behavior:'smooth'});
+  tr.querySelectorAll('img').forEach(im=>im.onclick=()=>openLb(u.imgs,u.imgs.indexOf(im.dataset.f)));
+});
+
+/* ---------- Galerie ---------- */
+const mas=document.getElementById('masonry');
+order.forEach((f,i)=>{
+  const b=document.createElement('button');b.dataset.cat=P[f][1];b.setAttribute('aria-label','Agrandir : '+P[f][0]);
+  b.innerHTML=`<img src="${f}.jpg" alt="${P[f][0]}" loading="lazy"><span>${P[f][0]}</span>`;
+  b.onclick=()=>{const vis=order.filter(x=>filter==='all'||P[x][1]===filter);openLb(vis,vis.indexOf(f))};
+  mas.appendChild(b);
+});
+let filter='all';
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;filter=b.dataset.f;
+  document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('on',x===b));
+  mas.querySelectorAll('button').forEach(x=>x.classList.toggle('hide',filter!=='all'&&x.dataset.cat!==filter));
+});
+
+/* ---------- Lightbox ---------- */
+const lb=document.getElementById('lb'),lbImg=document.getElementById('lb-img'),lbCap=document.getElementById('lb-cap');
+let set=[],cur=0;
+function show(i){cur=(i+set.length)%set.length;const f=set[cur];lbImg.src=f+'.jpg';lbImg.alt=P[f][0];lbCap.textContent=`${P[f][0]}  ·  ${cur+1}/${set.length}`}
+function openLb(s,i){set=s;show(i);lb.classList.add('open');document.body.style.overflow='hidden'}
+function closeLb(){lb.classList.remove('open');document.body.style.overflow=''}
+lb.querySelector('.x').onclick=closeLb;
+lb.querySelector('.pv').onclick=e=>{e.stopPropagation();show(cur-1)};
+lb.querySelector('.nx').onclick=e=>{e.stopPropagation();show(cur+1)};
+lb.onclick=e=>{if(e.target===lb)closeLb()};
+addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')closeLb();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1)});
+let tx=0;lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)show(cur+(d<0?1:-1))});
+
+/* ---------- WhatsApp ---------- */
+document.querySelectorAll('.wa-link').forEach(a=>{a.href=waUrl("Bonjour Salame Hôtel, je souhaite avoir des informations sur vos logements.");a.target='_blank';a.rel='noopener'});
+document.getElementById('yr').textContent=new Date().getFullYear();
+
+/* ---------- Dates ---------- */
+const iso=d=>{const z=new Date(d);z.setMinutes(z.getMinutes()-z.getTimezoneOffset());return z.toISOString().slice(0,10)};
+const today=iso(new Date());
+const fr=s=>new Date(s+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+const nightsOf=(a,b)=>a&&b?Math.round((new Date(b)-new Date(a))/864e5):0;
+function pair(a,b){a.min=today;const f=()=>{if(a.value){const m=new Date(a.value+'T12:00');m.setDate(m.getDate()+1);b.min=iso(m);if(!b.value||b.value<=a.value)b.value=iso(m)}};a.addEventListener('change',f);return f}
+
+/* Recherche rapide (hero) → message direct */
+const qa=document.getElementById('q-arr'),qd=document.getElementById('q-dep');pair(qa,qd);
+document.getElementById('quick').addEventListener('submit',e=>{
+  e.preventDefault();const t=document.getElementById('q-type').value;
+  if(!qa.value){qa.focus();qa.showPicker&&qa.showPicker();return}
+  const n=nightsOf(qa.value,qd.value);
+  window.open(waUrl(`Bonjour Salame Hôtel 👋\nAvez-vous un logement disponible ?\n\n• Logement : ${t}\n• Arrivée : ${fr(qa.value)}\n• Départ : ${fr(qd.value)} (${n} nuitée${n>1?'s':''})\n\nMerci !`),'_blank');
+});
+
+/* Formulaire complet */
+const fa=document.getElementById('f-arr'),fd=document.getElementById('f-dep'),fn=document.getElementById('f-nom'),sum=document.getElementById('summary'),nEl=document.getElementById('nights');
+const syncF=pair(fa,fd);
+function upd(){const n=nightsOf(fa.value,fd.value);sum.hidden=n<1;nEl.textContent=`${n} nuitée${n>1?'s':''}`}
+fa.addEventListener('change',upd);fd.addEventListener('change',upd);
+document.querySelectorAll('[data-type]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('f-type').value=b.dataset.type}));
+[fn,fa,fd].forEach(i=>i.addEventListener('input',()=>i.classList.remove('err')));
+document.getElementById('bookForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const bad=[fn,fa,fd].find(i=>!i.value.trim());if(bad){bad.classList.add('err');bad.focus();return}
+  const n=nightsOf(fa.value,fd.value);if(n<1){fd.classList.add('err');fd.focus();return}
+  const msg=document.getElementById('f-msg').value.trim();
+  const t=`Bonjour Salame Hôtel 👋\nJe souhaite réserver :\n\n• Nom : ${fn.value.trim()}\n• Logement : ${document.getElementById('f-type').value}\n• Arrivée : ${fr(fa.value)}\n• Départ : ${fr(fd.value)} (${n} nuitée${n>1?'s':''})\n• Personnes : ${document.getElementById('f-pers').value}`+(msg?`\n• Message : ${msg}`:'')+`\n\nEst-ce disponible ? Merci !`;
+  window.open(waUrl(t),'_blank');
+});
+/* Passer les dates de la recherche rapide vers le formulaire si on clique "Réserver" */
+document.querySelectorAll('a[href="#reserver"]').forEach(a=>a.addEventListener('click',()=>{if(qa.value&&!fa.value){fa.value=qa.value;syncF();if(qd.value)fd.value=qd.value;upd()}}));
+
+/* ---------- En-tête, bouton flottant, apparitions ---------- */
+const hd=document.getElementById('hd'),fab=document.getElementById('fab');
+const onS=()=>{hd.classList.toggle('solid',scrollY>30);fab.classList.toggle('show',scrollY>innerHeight*.6)};
+addEventListener('scroll',onS,{passive:true});onS();
+const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target)}}),{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
